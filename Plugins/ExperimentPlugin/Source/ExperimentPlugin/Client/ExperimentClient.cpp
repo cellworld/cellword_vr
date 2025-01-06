@@ -70,7 +70,7 @@ bool AExperimentClient::SpawnAndPossessPredator() {
 	const FVector SpawnVectorAdjusted = SpawnVector + FVector(3.0f,117.0f,0.0f); // mesh offset
 
 	FTransform SpawnTransform;
-	SpawnTransform.SetLocation(	OffsetOriginTransform.TransformPosition(SpawnVectorAdjusted));
+	SpawnTransform.SetLocation(OffsetOriginTransform.TransformPosition(SpawnVectorAdjusted));
 	SpawnTransform.SetRotation(OffsetOriginTransform.GetRotation());
 	SpawnTransform.SetScale3D(OffsetOriginTransform.GetScale3D());
 
@@ -410,21 +410,33 @@ void AExperimentClient::UpdatePreyPosition(const FVector InVector, const FRotato
 		return;
 	}
 
+	if (FrameCountPrey == 0) {
+		FirstLocationDebug = InVector;
+		UE_LOG(LogTemp, Warning, TEXT("[AExperimentClient::UpdatePreyPosition] FirstLocationDebug: %s"),
+			*FirstLocationDebug.ToString())
+	}
+
+	/* prepare transformation from world space to habitat (relative) space */
+	FTransform InTransform;
+	InTransform.SetLocation(InVector);
+	InTransform.SetRotation(InRotation.Quaternion());
+	
 	/* prepare Step */
 	FStep Step;
 	Step.data = "VR";
 	Step.agent_name = "prey";
 	Step.frame = FrameCountPrey;
-
-	// const FVector LocationRaw =
 	const FVector MeshOffset = FVector(3.0f,117.0f,0.0f);
-	const FVector WorldLocationAdjusted = InVector - MeshOffset;   // apply mesh offset
+	const FVector LocalLocation = OffsetOriginTransform.InverseTransformPosition(InVector);
+	const FVector WorldLocationAdjusted = LocalLocation - MeshOffset;   // apply mesh offset
 
-	const FTransform InverseOriginOffset = OffsetOriginTransform.Inverse();
-	const FVector WorldLocationAdjustedInverse = InverseOriginOffset.TransformPosition(WorldLocationAdjusted);
-	
-	Step.location = UExperimentUtils::VrToCanonical(WorldLocationAdjustedInverse, MapLength, OffsetOriginTransform.GetScale3D().X);
+	// todo: apply mesh offset
+	Step.location = UExperimentUtils::VrToCanonical(LocalLocation, MapLength, OffsetOriginTransform.GetScale3D().X);
 	Step.rotation = InRotation.Yaw;
+	
+	UE_LOG(LogTemp, Log, TEXT("[UpdatePreyPosition] ==== InVector: %s"), *InVector.ToString())
+	UE_LOG(LogTemp, Log, TEXT("[UpdatePreyPosition] OffsetOriginTransform: %s"), *OffsetOriginTransform.ToString())
+	UE_LOG(LogTemp, Log, TEXT("[UpdatePreyPosition] Step: %s ==== "), *UExperimentUtils::StepToJsonString(Step))
 
 	if (ensure(ExperimentManager->IsValidLowLevelFast() && ExperimentManager->Stopwatch->IsValidLowLevelFast())) {
 		Step.time_stamp = ExperimentManager->Stopwatch->GetElapsedTime();
@@ -432,8 +444,7 @@ void AExperimentClient::UpdatePreyPosition(const FVector InVector, const FRotato
 		Step.time_stamp = -1.0f;
 	}
 
-	const FMessage MessageOut = UMessageClient::NewMessage("prey_step",
-	                                                       UExperimentUtils::StepToJsonString(Step));
+	const FMessage MessageOut = UMessageClient::NewMessage("prey_step", UExperimentUtils::StepToJsonString(Step));
 	if (!ensure(TrackingClient->SendMessage(MessageOut))) {
 		UE_LOG(LogTemp, Error, TEXT("[AExperimentClient::UpdatePreyPosition] Failed: Send prey step!"))
 		// todo: notifyondisconnect
@@ -678,7 +689,6 @@ void AExperimentClient::HandleGetOcclusionLocationsResponse(const FString Respon
 	UE_LOG(LogTemp, Log, TEXT("[AExperimentClient::HandleGetOcclusionLocationsResponse] Response:%s"), *ResponseIn);
 	if (!OcclusionsStruct.bAllLocationsLoaded) { OcclusionsStruct.SetAllLocations(ResponseIn); }
 	if (!OcclusionsStruct.bSpawnedAll) {
-
 		UE_LOG(LogTemp, Log, TEXT("[AExperimentClient::HandleGetOcclusionLocationsResponse] Spawning all!"));
 		OcclusionsStruct.SpawnAll(GetWorld(), true, false, OffsetOriginTransform);
 
@@ -717,7 +727,7 @@ void AExperimentClient::HandleGetOcclusionLocationsTimedOut() {
 		else {
 			UE_LOG(LogTemp, Log,
 			       TEXT(
-				       "[AExperimentClient::HandleGetOcclusionLocationsResponse] Sent SendGetOcclusionsRequest OK!"
+			       	"[AExperimentClient::HandleGetOcclusionLocationsResponse] Sent SendGetOcclusionsRequest OK!"
 			       ))
 		}
 	}
@@ -725,20 +735,20 @@ void AExperimentClient::HandleGetOcclusionLocationsTimedOut() {
 
 bool AExperimentClient::ConnectToServer(UMessageClient* ClientIn, const int MaxAttemptsIn,
                                                 const FString& IPAddressIn, const int PortIn) {
-	UE_LOG(LogTemp, Log,
-	       TEXT("[AExperimentClient::ConnectToServer] Attempting connection: %s:%i"),
+	UE_LOG(LogTemp, Log, TEXT("[AExperimentClient::ConnectToServer] Attempting connection: %s:%i"),
 	       *IPAddressIn, PortIn)
 
 	if (!ClientIn->IsValidLowLevel()) {
 		UE_LOG(LogTemp, Error, TEXT("[ConnectToServer()] Failed to validate client!"));
 		return false;
 	}
+	
 	uint8 AttemptCurr = 0;
 
 	while (AttemptCurr < MaxAttemptsIn) {
 		if (ClientIn->Connect(IPAddressIn, PortIn)) {
-			UE_LOG(LogTemp, Log,
-			       TEXT("[AExperimentClient::ConnectToServer()] Success (attempt #: %i/%i)"), AttemptCurr + 1,
+			UE_LOG(LogTemp, Log,TEXT("[AExperimentClient::ConnectToServer()] Success (attempt #: %i/%i)"),
+			       AttemptCurr + 1,
 			       MaxAttemptsIn);
 			break;
 		}

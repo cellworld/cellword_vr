@@ -276,7 +276,7 @@ void USpatialAnchorManager::Server_FinishSpawn_Implementation() {
 	UE_LOG(LogTemp, Log, TEXT("[USpatialAnchorManager::Server_FinishSpawn_Implementation] NewActorScaleFactor: %0.3f!"),
 			NewActorScaleFactor)
 
-	FRotator FinalRotation = UKismetMathLibrary::FindLookAtRotation(AnchorLocationA,AnchorLocationB);
+	const FRotator FinalRotation = UKismetMathLibrary::FindLookAtRotation(AnchorLocationA,AnchorLocationB);
 	
 	FTransform SpawnTransformFinal;
 	SpawnTransformFinal.SetLocation(AnchorLocationA);
@@ -286,6 +286,8 @@ void USpatialAnchorManager::Server_FinishSpawn_Implementation() {
 	UE_LOG(LogTemp, Log, TEXT("[USpatialAnchorManager::Server_FinishSpawn_Implementation] Calling Habitat->FinishSpawning()!"))
 	UE_LOG(LogTemp, Log, TEXT("[USpatialAnchorManager::Server_FinishSpawn_Implementation] FinalLocation: %s"),
 		*SpawnTransformFinal.GetLocation().ToString())
+	UE_LOG(LogTemp, Log, TEXT("[USpatialAnchorManager::Server_FinishSpawn_Implementation] FinalRotation: %s"),
+		*SpawnTransformFinal.GetRotation().ToString())
 	UE_LOG(LogTemp, Log, TEXT("[USpatialAnchorManager::Server_FinishSpawn_Implementation] FinalScale: %s"),
 		*SpawnTransformFinal.GetScale3D().ToString())
 	
@@ -302,7 +304,11 @@ void USpatialAnchorManager::Server_FinishSpawn_Implementation() {
 			ExperimentGameMode->ExperimentClient->OffsetOriginTransform = SpawnTransformFinal;
 			ExperimentGameMode->ExperimentClient->WorldScale		    = NewActorScaleFactor;
 			ExperimentGameMode->ExperimentClient->Habitat			    = Habitat;
-			ExperimentGameMode->ExperimentStartEpisode();
+			// if (ensure(GetOwner())) {
+			// 	UE_LOG(LogTemp, Log, TEXT("[USpatialAnchorManager::Server_FinishSpawn_Implementation] APPLYING TRANSFORM "))
+			// 	GetOwner()->SetActorTransform(SpawnTransformFinal);
+			// }
+			ExperimentGameMode->ExperimentStartEpisode(); // debug | todo: delete 
 			if (!ExperimentGameMode->ExperimentClient->SendGetOcclusionLocationsRequest()) {
 				UE_LOG(LogTemp, Error, TEXT("[[USpatialAnchorManager::Server_FinishSpawn_Implementation]] Failed to SendGetOcclusionLocationsRequest"))
 			}else {

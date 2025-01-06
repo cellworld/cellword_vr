@@ -287,8 +287,11 @@ public:
 	float WorldScale      = 15.0f;
 
 	UPROPERTY(EditAnywhere)
-	FTransform OffsetOriginTransform; 
-
+	FTransform OffsetOriginTransform;
+	
+	UPROPERTY(EditAnywhere)
+	FVector FirstLocationDebug;
+	
 	/* ==== setup ==== */
 	bool SpawnAndPossessPredator();
 	UPROPERTY(Replicated)
