@@ -284,9 +284,9 @@ void USpatialAnchorManager::Server_FinishSpawn_Implementation() {
 	SpawnTransformFinal.SetRotation(FinalRotation.Quaternion());
 
 	FTransform SpawnTransformTest;
-	SpawnTransformFinal.SetLocation(FVector(0,0,0));
-	SpawnTransformFinal.SetScale3D(FVector(1.0f,1.0f,1.0f)*1);
-	SpawnTransformFinal.SetRotation(FQuat(0,0,0,0));
+	SpawnTransformTest.SetLocation(FVector(100,100,0));
+	SpawnTransformTest.SetScale3D(FVector(1.0f,1.0f,1.0f)*1);
+	SpawnTransformTest.SetRotation(FQuat(0,0,90,0));
 	
 	UE_LOG(LogTemp, Log, TEXT("[USpatialAnchorManager::Server_FinishSpawn_Implementation] Calling Habitat->FinishSpawning()!"))
 	UE_LOG(LogTemp, Log, TEXT("[USpatialAnchorManager::Server_FinishSpawn_Implementation] FinalLocation: %s"),

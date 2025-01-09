@@ -427,27 +427,31 @@ void AExperimentClient::UpdatePreyPosition(const FVector InVector, const FRotato
 	Step.agent_name = "prey";
 	Step.frame = FrameCountPrey;
 	const FVector ScaledMeshOffset = FVector(3.0f,117.0f,0.0f)*OffsetOriginTransform.GetScale3D().X;
+	// flip
+	// translate
+	// rotate
 
 	// const FVector InVectorRelative = InVector - OffsetOriginTransform.GetLocation();
-	FVector LocalLocation = OffsetOriginTransform.InverseTransformPosition(InVector);
-	LocalLocation.Y *= -1; // flip UE->canonical y-axis 
-	FVector UnrotatedVector = UKismetMathLibrary::Quat_UnrotateVector(OffsetOriginTransform.GetRotation(),OffsetOriginTransform.GetLocation());
-	FVector InVectorRelative = InVector - UnrotatedVector;
-	// InVectorRelative.Y -= 101.83;
-	// InVectorRelative.X -= 3.0f;
-	// todo: apply mesh offset
-	InVectorRelative.Y *= -1; 
+	// FVector UnrotatedVector = UKismetMathLibrary::Quat_UnrotateVector(OffsetOriginTransform.GetRotation(),OffsetOriginTransform.GetLocation());
+
+	// flip y-axis 
+	FVector InVectorFlipped = InVector;
+	InVectorFlipped.Y *= -1;
+
+	FVector OffsetFlipped = OffsetOriginTransform.GetLocation();
+	OffsetFlipped.Y *= -1; 
+	
+	FVector InVectorRelative = InVectorFlipped - OffsetFlipped; // relative location
+	
+	FVector RotatedVector = UKismetMathLibrary::Quat_RotateVector(OffsetOriginTransform.GetRotation(), InVectorRelative);
 	const FLocation Location = UExperimentUtils::VrToCanonical(InVectorRelative, MapLength, OffsetOriginTransform.GetScale3D().X);
-	Step.location  = Location;
+	Step.location    = Location;
 	Step.rotation    = InRotation.Yaw;
 	
 	UE_LOG(LogTemp, Log, TEXT("[UpdatePreyPosition] ==== InVector: %s"), *InVector.ToString())
 	UE_LOG(LogTemp, Log, TEXT("[UpdatePreyPosition] OffsetOriginTransform: %s"), *OffsetOriginTransform.ToString())
 	UE_LOG(LogTemp, Log, TEXT("[UpdatePreyPosition] ScaledMeshOffset: %s"), *ScaledMeshOffset.ToString())
 	UE_LOG(LogTemp, Log, TEXT("[UpdatePreyPosition] InVectorRelative: %s"), *InVectorRelative.ToString())
-	UE_LOG(LogTemp, Log, TEXT("[UpdatePreyPosition] LocalLocation: %s"), *LocalLocation.ToString())
-	// UE_LOG(LogTemp, Log, TEXT("[UpdatePreyPosition] InVectorRelativeRotated: %s -> %0.2f, %0.2f"), *InVectorRelativeRotated.ToString(),
-	// 	Step.location.x, Step.location.y)
 	UE_LOG(LogTemp, Log, TEXT("[UpdatePreyPosition] Step: %s ==== "), *UExperimentUtils::StepToJsonString(Step))
 	
 	if (ensure(ExperimentManager->IsValidLowLevelFast() && ExperimentManager->Stopwatch->IsValidLowLevelFast())) {
