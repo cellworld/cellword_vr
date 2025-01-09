@@ -282,11 +282,6 @@ void USpatialAnchorManager::Server_FinishSpawn_Implementation() {
 	SpawnTransformFinal.SetLocation(AnchorLocationA);
 	SpawnTransformFinal.SetScale3D(FVector(1.0f,1.0f,1.0f)*NewActorScaleFactor);
 	SpawnTransformFinal.SetRotation(FinalRotation.Quaternion());
-
-	FTransform SpawnTransformTest;
-	SpawnTransformTest.SetLocation(FVector(100,100,0));
-	SpawnTransformTest.SetScale3D(FVector(1.0f,1.0f,1.0f)*1);
-	SpawnTransformTest.SetRotation(FQuat(0,0,90,0));
 	
 	UE_LOG(LogTemp, Log, TEXT("[USpatialAnchorManager::Server_FinishSpawn_Implementation] Calling Habitat->FinishSpawning()!"))
 	UE_LOG(LogTemp, Log, TEXT("[USpatialAnchorManager::Server_FinishSpawn_Implementation] FinalLocation: %s"),
@@ -297,7 +292,7 @@ void USpatialAnchorManager::Server_FinishSpawn_Implementation() {
 		*SpawnTransformFinal.GetScale3D().ToString())
 	
 	// Habitat->FinishSpawning(SpawnTransformFinal);
-	Habitat->FinishSpawning(SpawnTransformTest);
+	Habitat->FinishSpawning(SpawnTransformFinal);
 	bSpawnInProgress = false;
 
 	// todo: tell gamemode or experiment service to update world origin to Habitats's entry door location
@@ -307,10 +302,8 @@ void USpatialAnchorManager::Server_FinishSpawn_Implementation() {
 
 		if (ExperimentGameMode->ExperimentClient) {
 			UE_LOG(LogTemp, Log, TEXT("[USpatialAnchorManager::Server_FinishSpawn_Implementation] ExperimentGameMode found"))
-			// ExperimentGameMode->ExperimentClient->OffsetOriginTransform = SpawnTransformFinal;
-			// ExperimentGameMode->ExperimentClient->WorldScale		    = NewActorScaleFactor;
-			ExperimentGameMode->ExperimentClient->OffsetOriginTransform = SpawnTransformTest;
-			ExperimentGameMode->ExperimentClient->WorldScale		    = 1;
+			ExperimentGameMode->ExperimentClient->OffsetOriginTransform = SpawnTransformFinal;
+			ExperimentGameMode->ExperimentClient->WorldScale		    = NewActorScaleFactor;
 			ExperimentGameMode->ExperimentClient->Habitat			    = Habitat;
 			// if (ensure(GetOwner())) {
 			// 	UE_LOG(LogTemp, Log, TEXT("[USpatialAnchorManager::Server_FinishSpawn_Implementation] APPLYING TRANSFORM "))
