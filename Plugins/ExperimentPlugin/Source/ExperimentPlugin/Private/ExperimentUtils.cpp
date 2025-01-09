@@ -220,15 +220,23 @@ FString UExperimentUtils::StepToJsonString(FStep Step) {
 
 FLocation UExperimentUtils::VrToCanonical(const FVector VectorIn, const float MapLengthIn, const float WorldScaleIn) {
 	FLocation LocationOut;
-	LocationOut.x = ((VectorIn.X) / (MapLengthIn * WorldScaleIn));
-	LocationOut.y = VectorIn.Y / (-MapLengthIn * WorldScaleIn);
+	// LocationOut.x = ((VectorIn.X) / (MapLengthIn * WorldScaleIn));
+	// LocationOut.y = VectorIn.Y / (-MapLengthIn * WorldScaleIn);
+
+	/* v2 */
+	const float ScaledDiameter = MapLengthIn * WorldScaleIn;
+	const float Apothem        = 0.5 * UKismetMathLibrary::Sqrt(3) * ScaledDiameter / 2; 
+	
+	LocationOut.x = ScaledDiameter != 0.0f ? (VectorIn.X / ScaledDiameter) : 0.0f;
+	LocationOut.y = Apothem		   != 0.0f ? 0.5 + (VectorIn.Y / (2*Apothem)) : 0.0f;
+	
 	return LocationOut;
 }
 
 FVector UExperimentUtils::CanonicalToVr(const FLocation LocationIn, const float MapLengthIn, const float WorldScaleIn) {
 	FVector VectorOut;
 	VectorOut.X = (LocationIn.x * MapLengthIn * WorldScaleIn);
-	VectorOut.Y = (-LocationIn.y * MapLengthIn * WorldScaleIn);
+	VectorOut.Y = (LocationIn.y * MapLengthIn * WorldScaleIn * 2);
 	VectorOut.Z = 0; // will need to be changed 
 	return VectorOut;
 }

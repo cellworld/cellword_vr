@@ -426,18 +426,30 @@ void AExperimentClient::UpdatePreyPosition(const FVector InVector, const FRotato
 	Step.data = "VR";
 	Step.agent_name = "prey";
 	Step.frame = FrameCountPrey;
-	const FVector MeshOffset = FVector(3.0f,117.0f,0.0f);
-	const FVector LocalLocation = OffsetOriginTransform.InverseTransformPosition(InVector);
-	const FVector WorldLocationAdjusted = LocalLocation - MeshOffset;   // apply mesh offset
+	const FVector ScaledMeshOffset = FVector(3.0f,117.0f,0.0f)*OffsetOriginTransform.GetScale3D().X;
 
+	// const FVector InVectorRelative = InVector - OffsetOriginTransform.GetLocation();
+	FVector LocalLocation = OffsetOriginTransform.InverseTransformPosition(InVector);
+	LocalLocation.Y *= -1; // flip UE->canonical y-axis 
+	FVector UnrotatedVector = UKismetMathLibrary::Quat_UnrotateVector(OffsetOriginTransform.GetRotation(),OffsetOriginTransform.GetLocation());
+	FVector InVectorRelative = InVector - UnrotatedVector;
+	// InVectorRelative.Y -= 101.83;
+	// InVectorRelative.X -= 3.0f;
 	// todo: apply mesh offset
-	Step.location = UExperimentUtils::VrToCanonical(LocalLocation, MapLength, OffsetOriginTransform.GetScale3D().X);
-	Step.rotation = InRotation.Yaw;
+	InVectorRelative.Y *= -1; 
+	const FLocation Location = UExperimentUtils::VrToCanonical(InVectorRelative, MapLength, OffsetOriginTransform.GetScale3D().X);
+	Step.location  = Location;
+	Step.rotation    = InRotation.Yaw;
 	
 	UE_LOG(LogTemp, Log, TEXT("[UpdatePreyPosition] ==== InVector: %s"), *InVector.ToString())
 	UE_LOG(LogTemp, Log, TEXT("[UpdatePreyPosition] OffsetOriginTransform: %s"), *OffsetOriginTransform.ToString())
+	UE_LOG(LogTemp, Log, TEXT("[UpdatePreyPosition] ScaledMeshOffset: %s"), *ScaledMeshOffset.ToString())
+	UE_LOG(LogTemp, Log, TEXT("[UpdatePreyPosition] InVectorRelative: %s"), *InVectorRelative.ToString())
+	UE_LOG(LogTemp, Log, TEXT("[UpdatePreyPosition] LocalLocation: %s"), *LocalLocation.ToString())
+	// UE_LOG(LogTemp, Log, TEXT("[UpdatePreyPosition] InVectorRelativeRotated: %s -> %0.2f, %0.2f"), *InVectorRelativeRotated.ToString(),
+	// 	Step.location.x, Step.location.y)
 	UE_LOG(LogTemp, Log, TEXT("[UpdatePreyPosition] Step: %s ==== "), *UExperimentUtils::StepToJsonString(Step))
-
+	
 	if (ensure(ExperimentManager->IsValidLowLevelFast() && ExperimentManager->Stopwatch->IsValidLowLevelFast())) {
 		Step.time_stamp = ExperimentManager->Stopwatch->GetElapsedTime();
 	} else {
@@ -690,8 +702,7 @@ void AExperimentClient::HandleGetOcclusionLocationsResponse(const FString Respon
 	if (!OcclusionsStruct.bAllLocationsLoaded) { OcclusionsStruct.SetAllLocations(ResponseIn); }
 	if (!OcclusionsStruct.bSpawnedAll) {
 		UE_LOG(LogTemp, Log, TEXT("[AExperimentClient::HandleGetOcclusionLocationsResponse] Spawning all!"));
-		OcclusionsStruct.SpawnAll(GetWorld(), true, false, OffsetOriginTransform);
-
+		OcclusionsStruct.SpawnAll(GetWorld(), false, false, OffsetOriginTransform);
 	} else { UE_LOG(LogTemp, Log,
 		TEXT("[AExperimentClient::HandleGetOcclusionLocationsResponse] All locations already spawned. Skipping spawn!" ));
 	}
