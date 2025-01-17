@@ -80,6 +80,36 @@ void USpatialAnchorManager::Client_CreateOculusSpatialAnchor_Implementation() {
 	
 }
 
+void USpatialAnchorManager::Server_ToggleExperiment_Implementation() {
+	UE_LOG(LogTemp, Log, TEXT("[USpatialAnchorManager::Server_ToggleExperiment_Implementation]"))
+	
+	if (!ensure(GetWorld())) { return; }
+	AGameModeBase* GameModeBase = GetWorld()->GetAuthGameMode();
+	if (AExperimentGameMode* ExperimentGameMode = Cast<AExperimentGameMode>(GameModeBase)) {
+		UE_LOG(LogTemp, Log, TEXT("[USpatialAnchorManager::Server_ToggleExperiment_Implementation] ExperimentGameMode found"))
+		if (ExperimentGameMode->ExperimentClient) {
+			if (ExperimentGameMode->ExperimentClient->ExperimentManager) {
+				UE_LOG(LogTemp, Log, TEXT("[USpatialAnchorManager::Server_ToggleExperiment_Implementation] ExperimentManager VALID"))
+				const bool bInEpisode = ExperimentGameMode->ExperimentClient->ExperimentManager->IsInEpisode();
+				if (bInEpisode) {
+					UE_LOG(LogTemp, Log, TEXT("[USpatialAnchorManager::Server_ToggleExperiment_Implementation] InEpisode True. Calling StopEpisode."))
+					ExperimentGameMode->ExperimentClient->StopEpisode();
+				} else {
+					UE_LOG(LogTemp, Log, TEXT("[USpatialAnchorManager::Server_ToggleExperiment_Implementation] InEpisode False. Calling StartEpisode."))
+					ExperimentGameMode->ExperimentClient->StartEpisode();
+				}
+			}
+		}else {
+			UE_LOG(LogTemp, Error, TEXT("[USpatialAnchorManager::Server_ToggleExperiment_Implementation] ExperimentClient NULL"))
+
+		}
+	}else {
+		UE_LOG(LogTemp, Error, TEXT("[USpatialAnchorManager::Server_ToggleExperiment_Implementation] GAME MODE NOT VALID"))
+	}
+	UE_LOG(LogTemp, Log, TEXT("[USpatialAnchorManager::Server_ToggleExperiment_Implementation] Exiting"))
+}
+bool USpatialAnchorManager::Server_ToggleExperiment_Validate() { return true;}
+
 /*inputs:
  * fvector worldscalefactor
  */
@@ -280,19 +310,25 @@ void USpatialAnchorManager::Server_FinishSpawn_Implementation() {
 	
 	FTransform SpawnTransformFinal;
 	SpawnTransformFinal.SetLocation(AnchorLocationA);
-	SpawnTransformFinal.SetScale3D(FVector(1.0f,1.0f,1.0f)*NewActorScaleFactor);
+	SpawnTransformFinal.SetScale3D(FVector(1.0f,1.0f,0.5f)*NewActorScaleFactor);
 	SpawnTransformFinal.SetRotation(FinalRotation.Quaternion());
 	
 	UE_LOG(LogTemp, Log, TEXT("[USpatialAnchorManager::Server_FinishSpawn_Implementation] Calling Habitat->FinishSpawning()!"))
+
 	UE_LOG(LogTemp, Log, TEXT("[USpatialAnchorManager::Server_FinishSpawn_Implementation] FinalLocation: %s"),
 		*SpawnTransformFinal.GetLocation().ToString())
+
 	UE_LOG(LogTemp, Log, TEXT("[USpatialAnchorManager::Server_FinishSpawn_Implementation] FinalRotation: %s"),
 		*SpawnTransformFinal.GetRotation().ToString())
+
 	UE_LOG(LogTemp, Log, TEXT("[USpatialAnchorManager::Server_FinishSpawn_Implementation] FinalScale: %s"),
 		*SpawnTransformFinal.GetScale3D().ToString())
 	
-	// Habitat->FinishSpawning(SpawnTransformFinal);
 	Habitat->FinishSpawning(SpawnTransformFinal);
+	Habitat->SetActorEnableCollision(true);
+	// if (!ensure(Habitat->DoorEntry)) return; 
+	// if (!ensure(Habitat->DoorExit)) return;
+	
 	bSpawnInProgress = false;
 
 	// todo: tell gamemode or experiment service to update world origin to Habitats's entry door location
@@ -309,7 +345,7 @@ void USpatialAnchorManager::Server_FinishSpawn_Implementation() {
 			// 	UE_LOG(LogTemp, Log, TEXT("[USpatialAnchorManager::Server_FinishSpawn_Implementation] APPLYING TRANSFORM "))
 			// 	GetOwner()->SetActorTransform(SpawnTransformFinal);
 			// }
-			ExperimentGameMode->ExperimentStartEpisode(); // debug | todo: delete 
+			// ExperimentGameMode->ExperimentStartEpisode(); // debug | todo: delete 
 			if (!ExperimentGameMode->ExperimentClient->SendGetOcclusionLocationsRequest()) {
 				UE_LOG(LogTemp, Error, TEXT("[[USpatialAnchorManager::Server_FinishSpawn_Implementation]] Failed to SendGetOcclusionLocationsRequest"))
 			}else {

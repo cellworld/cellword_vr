@@ -61,7 +61,6 @@ AHabitat::AHabitat() {
 	AnchorMRMeshComponent = CreateDefaultSubobject<UMRMeshComponent>(TEXT("AnchorMRMeshComponent"));
 	AnchorMRMeshComponent->SetupAttachment(EntrySceneComponent);
 	AnchorMRMeshComponent->SetRelativeRotation(FRotator(0.0f,180.0f,0.0f));
-	
 }
 
 void AHabitat::GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & OutLifetimeProps) const
@@ -72,12 +71,17 @@ void AHabitat::GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & OutLifet
 
 void AHabitat::PostInitializeComponents() {
 	Super::PostInitializeComponents();
-	DoorExit->SetChildActorClass(AExperimentDoorExit::StaticClass());
-	DoorEntry->SetChildActorClass(AExperimentDoorEntry::StaticClass());
-	DoorEntryRoom->SetChildActorClass(AExperimentDoorLobby::StaticClass());
+	// DoorExit->SetChildActorClass(AExperimentDoorExit::StaticClass());
+	// DoorEntry->SetChildActorClass(AExperimentDoorEntry::StaticClass());
+	// DoorEntryRoom->SetChildActorClass(AExperimentDoorLobby::StaticClass());
 	SetReplicates(true);
 }
 
+void AHabitat::Server_ToggleDoorCollision_Implementation(const bool bCanCollide) {
+
+}
+
+bool AHabitat::Server_ToggleDoorCollision_Validate(const bool bCanCollide) { return true;}
 // Called when the game starts or when spawned
 void AHabitat::BeginPlay() {
 	Super::BeginPlay();

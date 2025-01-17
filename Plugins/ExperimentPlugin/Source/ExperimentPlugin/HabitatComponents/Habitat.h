@@ -51,6 +51,8 @@ public:
 	UPROPERTY(Replicated, BlueprintReadWrite, VisibleAnywhere)
 	TObjectPtr<UMRMeshComponent> MRMesh_Anchor_Exit; 
 
+	UFUNCTION(Server, Reliable, WithValidation)
+	void Server_ToggleDoorCollision(const bool bCanCollide);
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;

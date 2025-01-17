@@ -3,7 +3,6 @@
 AOcclusion::AOcclusion() {
 	PrimaryActorTick.bCanEverTick		   = true;
 	PrimaryActorTick.bStartWithTickEnabled = false;
-
 	
 	StaticMeshComponent = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Mesh"));
 	RootComponent = StaticMeshComponent; 
@@ -12,7 +11,7 @@ AOcclusion::AOcclusion() {
 	static ConstructorHelpers::FObjectFinder<UStaticMesh> MeshAsset(TEXT("StaticMesh'/Game/Levels/Maze/Occlusion.Occlusion'"));
 	if (MeshAsset.Succeeded()) { StaticMeshComponent->SetStaticMesh(MeshAsset.Object); }
 	else { UE_LOG(LogTemp, Log, TEXT("[AOcclusion::AOcclusion()] Failed to find occlusion static mesh.")); }
-
+	
 	this->SetActorEnableCollision(false);
  }
 
@@ -20,6 +19,7 @@ AOcclusion::AOcclusion() {
 void AOcclusion::BeginPlay() {
 	Super::BeginPlay();
 	SetReplicateMovement(true);
+	UE_LOG(LogTemp, Log, TEXT("[AOcclusion::BeginPlay]"))
 }
 
 void AOcclusion::PostInitializeComponents() {

@@ -111,7 +111,6 @@ Server_UpdateMovement_Implementation(const FVector& InLocation, const FRotator& 
 	}
 }
 
-
 void AExperimentCharacter::OnOverlapBegin(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp,
 							   int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
@@ -253,13 +252,17 @@ void AExperimentCharacter::UpdateMovement() {
 	UE_LOG(LogTemp, Warning,
 		TEXT("[AExperimentCharacter::UpdateMovement] running with editor, forcing update to work with MetaXR simulator!"))
 	if (bUseVR) {
-		// todo: bUseVR - Make variable 
-		FRotator HMDRotation {};
-		FVector HMDLocation {};
-		UHeadMountedDisplayFunctionLibrary::GetOrientationAndPosition(HMDRotation, HMDLocation);
-		CurrentLocation = HMDLocation + this->VROrigin->GetComponentLocation();
-		CurrentRotation = HMDRotation;
-		UpdateRoomScaleLocation();
+		// todo: bUseVR - Make variable
+		if (UHeadMountedDisplayFunctionLibrary::IsHeadMountedDisplayConnected()) {
+			FRotator HMDRotation {};
+			FVector HMDLocation {};
+			UHeadMountedDisplayFunctionLibrary::GetOrientationAndPosition(HMDRotation, HMDLocation);
+			CurrentLocation = HMDLocation + this->VROrigin->GetComponentLocation();
+			CurrentRotation = HMDRotation;
+			Server_UpdateRoomScaleLocation(); // was UpdateRoomscaleLocation()
+		}else {
+			UE_LOG(LogTemp, Warning, TEXT("[AExperimentCharacter::UpdateMovement] IsHeadMountedDisplayConnected FALSE"))
+		}
 	}
 	Server_UpdateMovement(CurrentLocation, CurrentRotation);
 	return;
@@ -274,7 +277,7 @@ void AExperimentCharacter::UpdateMovement() {
 			UHeadMountedDisplayFunctionLibrary::GetOrientationAndPosition(HMDRotation, HMDLocation);
 			CurrentLocation = HMDLocation + this->VROrigin->GetComponentLocation();
 			CurrentRotation = HMDRotation;
-			UpdateRoomScaleLocation();
+			Server_UpdateRoomScaleLocation();
 			// Server_UpdateMovement(CurrentLocation, CurrentRotation);
 		} else {
 			CurrentLocation = RootComponent->GetComponentLocation();
@@ -284,23 +287,23 @@ void AExperimentCharacter::UpdateMovement() {
 	Server_UpdateMovement(CurrentLocation, CurrentRotation);
 }
 
-void AExperimentCharacter::UpdateRoomScaleLocation() {
-	const FVector CapsuleLocation = GetCapsuleComponent()->GetComponentLocation();
-	FVector CameraLocation = Camera->GetComponentLocation();
-	CameraLocation.Z = 0.0f;
-	FVector DeltaLocation = CameraLocation - CapsuleLocation;
-	DeltaLocation.Z = 0.0f;
-	AddActorWorldOffset(DeltaLocation, false, nullptr, ETeleportType::TeleportPhysics);
-	VROrigin->AddWorldOffset(-DeltaLocation, false, nullptr, ETeleportType::TeleportPhysics);
-	GetCapsuleComponent()->SetWorldLocation(CameraLocation);
-
-	// UE_LOG(LogTemp, Log, TEXT("[AExperimentCharacter::UpdateRoomScaleLocation] VROrigin: Location: %s | Rotation: %s"),
-	// 	*VROrigin->GetComponentLocation().ToString(), *VROrigin->GetComponentRotation().ToString())
-	//
-	// UE_LOG(LogTemp, Log, TEXT("[AExperimentCharacter::UpdateRoomScaleLocation] Capsule: Location: %s | Rotation: %s"),
-	// 	*GetCapsuleComponent()->GetComponentLocation().ToString(), *GetCapsuleComponent()->GetComponentRotation().ToString())
-	//
-}
+// void AExperimentCharacter::UpdateRoomScaleLocation() {
+// 	const FVector CapsuleLocation = GetCapsuleComponent()->GetComponentLocation();
+// 	FVector CameraLocation = Camera->GetComponentLocation();
+// 	CameraLocation.Z = 0.0f;
+// 	FVector DeltaLocation = CameraLocation - CapsuleLocation;
+// 	DeltaLocation.Z = 0.0f;
+// 	AddActorWorldOffset(DeltaLocation, false, nullptr, ETeleportType::TeleportPhysics);
+// 	VROrigin->AddWorldOffset(-DeltaLocation, false, nullptr, ETeleportType::TeleportPhysics);
+// 	GetCapsuleComponent()->SetWorldLocation(CameraLocation);
+//
+// 	// UE_LOG(LogTemp, Log, TEXT("[AExperimentCharacter::UpdateRoomScaleLocation] VROrigin: Location: %s | Rotation: %s"),
+// 	// 	*VROrigin->GetComponentLocation().ToString(), *VROrigin->GetComponentRotation().ToString())
+// 	//
+// 	// UE_LOG(LogTemp, Log, TEXT("[AExperimentCharacter::UpdateRoomScaleLocation] Capsule: Location: %s | Rotation: %s"),
+// 	// 	*GetCapsuleComponent()->GetComponentLocation().ToString(), *GetCapsuleComponent()->GetComponentRotation().ToString())
+// 	//
+// }
 
 void AExperimentCharacter::BeginPlay() {
 	Super::BeginPlay();
@@ -334,6 +337,22 @@ void AExperimentCharacter::BeginPlay() {
 				UE_LOG(LogTemp, Log, TEXT("[AExperimentCharacter::BeginPlay] Added EnhancedInput MappingContext"))
 			}
 	}
+}
+
+void AExperimentCharacter::Server_UpdateRoomScaleLocation_Implementation() {
+	UE_LOG(LogTemp, Log, TEXT("[AExperimentCharacter::Server_UpdateRoomScaleLocation_Implementation] called"))
+	const FVector CapsuleLocation = GetCapsuleComponent()->GetComponentLocation();
+	FVector CameraLocation = Camera->GetComponentLocation();
+	CameraLocation.Z = 0.0f;
+	FVector DeltaLocation = CameraLocation - CapsuleLocation;
+	DeltaLocation.Z = 0.0f;
+	AddActorWorldOffset(DeltaLocation, false, nullptr, ETeleportType::TeleportPhysics);
+	VROrigin->AddWorldOffset(-DeltaLocation, false, nullptr, ETeleportType::TeleportPhysics);
+	GetCapsuleComponent()->SetWorldLocation(CameraLocation);
+}
+
+bool AExperimentCharacter::Server_UpdateRoomScaleLocation_Validate() {
+	return true;
 }
 
 void AExperimentCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const {
@@ -424,9 +443,13 @@ void AExperimentCharacter::Tick(float DeltaSeconds) {
 			UE_LOG(LogTemp, Log, TEXT("[AExperimentCharacter::Tick] bBlockInput: %s"),
 					bBlockInput ? TEXT("true") : TEXT("false"))
 
+
 		}
 	}
 	
+	if (GEngine) GEngine->AddOnScreenDebugMessage(-1, .05f, FColor::Red,
+		FString::Printf(TEXT("[APawnMain::OnOverlapBegin()] %s"), *GetActorLocation().ToString()));
+
 	/*if (bUseVR) { // todo: bUseVR - Make variable 
 		FRotator HMDRotation {};
 		FVector HMDLocation {};

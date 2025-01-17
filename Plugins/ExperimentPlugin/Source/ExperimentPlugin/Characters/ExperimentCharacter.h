@@ -83,8 +83,8 @@ public:
 	UPROPERTY(VisibleAnywhere)
 	FRotator CurrentRotation;
 
-	UFUNCTION(BlueprintCallable)
-	void UpdateRoomScaleLocation();
+	UFUNCTION(Server, Reliable, WithValidation, BlueprintCallable)
+	void Server_UpdateRoomScaleLocation();
 	
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 	virtual void BeginPlay() override;

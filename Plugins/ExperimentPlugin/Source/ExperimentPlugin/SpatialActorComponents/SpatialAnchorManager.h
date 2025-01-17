@@ -64,7 +64,12 @@ public:
 	void Client_CreateOculusSpatialAnchor();
 	bool Client_CreateOculusSpatialAnchor_Validate();
 	void Client_CreateOculusSpatialAnchor_Implementation();
-
+	
+	UFUNCTION(Server, Reliable, WithValidation, BlueprintCallable)
+	void Server_ToggleExperiment();
+	bool Server_ToggleExperiment_Validate();
+	void Server_ToggleExperiment_Implementation();
+	
 	UFUNCTION(Server, Reliable, WithValidation, BlueprintCallable)
 	void Server_AnchorCreate(const FVector InLocation);
 	bool Server_AnchorCreate_Validate(const FVector InLocation);

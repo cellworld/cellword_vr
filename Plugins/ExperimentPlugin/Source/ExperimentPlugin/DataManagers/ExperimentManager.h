@@ -308,7 +308,11 @@ public:
 	UFUNCTION()
 	void OnEpisodeFinished() {
 		UE_LOG(LogTemp, Log, TEXT("[UExperimentManager::OnEpisodeFinished] Called"))
-		check(bInEpisode == true);
+		// check(bInEpisode == true);
+		if (!bInEpisode) {
+			UE_LOG(LogTemp, Error, TEXT("[UExperimentManager::OnEpisodeFinished] NOT IN EPISODE"))
+			return;
+		}
 		UE_LOG(LogTemp, Log, TEXT("[UExperimentManager::OnEpisodeFinished] setting: bInEpisode = false"))
 		SetInEpisode(false);
 		NotifyEpisodeFinished.Broadcast();
@@ -316,7 +320,7 @@ public:
 		double EpisodeDurationTemp = 0.0f;
 		if (!ensure(this->StopTimerEpisode(EpisodeDurationTemp))) {
 			UE_LOG(LogTemp, Error, TEXT("[UExperimentManager::OnEpisodeFinished] StopTimerEpisode FAILED"))
-		}else {
+		} else {
 			UE_LOG(LogTemp, Log, TEXT("[UExperimentManager::OnEpisodeFinished] StopTimerEpisode OK"))
 		}
 
@@ -336,7 +340,6 @@ public:
 					TEXT("[UExperimentManager::OnEpisodeFinished] Player (%i) finished experiment! Broadcasting to delegates (NotifyOnExperimentFinishedDelegate)."),
 					PlayerIndex)
 			}
-			return; 
 		}
 
 		UE_LOG(LogTemp, Log, TEXT("[UExperimentManager::OnEpisodeFinished] TEMP - Player finished episode: %i"),
