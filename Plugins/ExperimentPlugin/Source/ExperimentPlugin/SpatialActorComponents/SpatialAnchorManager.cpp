@@ -310,7 +310,7 @@ void USpatialAnchorManager::Server_FinishSpawn_Implementation() {
 	
 	FTransform SpawnTransformFinal;
 	SpawnTransformFinal.SetLocation(AnchorLocationA);
-	SpawnTransformFinal.SetScale3D(FVector(1.0f,1.0f,0.5f)*NewActorScaleFactor);
+	SpawnTransformFinal.SetScale3D(FVector(1.0f,1.0f,1.0f)*NewActorScaleFactor);
 	SpawnTransformFinal.SetRotation(FinalRotation.Quaternion());
 	
 	UE_LOG(LogTemp, Log, TEXT("[USpatialAnchorManager::Server_FinishSpawn_Implementation] Calling Habitat->FinishSpawning()!"))

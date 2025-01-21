@@ -23,11 +23,10 @@ AExperimentCharacter::AExperimentCharacter() {
 	BaseLookUpRate	 = 45.f;
 
 	// Don't rotate when the controller rotates. Let that just affect the camera.
-	bUseControllerRotationPitch = false;
-	bUseControllerRotationYaw   = false;
-	bUseControllerRotationRoll  = false;
+	// bUseControllerRotationPitch = false;
+	// bUseControllerRotationYaw   = false;
+	// bUseControllerRotationRoll  = false;
 	bSimGravityDisabled			= true;
-	
 	
 	VROrigin = CreateDefaultSubobject<USceneComponent>(TEXT("VROrigin"));
 	// VROrigin->SetupAttachment(GetCapsuleComponent());
@@ -49,8 +48,10 @@ AExperimentCharacter::AExperimentCharacter() {
 
 	// Create a follow camera
 	Camera = CreateDefaultSubobject<UCameraComponent>(TEXT("Camera"));
-	Camera->SetupAttachment(RootComponent); // Attach the camera to the end of the boom and let the boom adjust to match the controller orientation
 	Camera->bUsePawnControlRotation = false; // Camera does not rotate relative to arm
+	Camera->SetMobility(EComponentMobility::Movable);
+	Camera->bLockToHmd = true;
+	Camera->SetupAttachment(RootComponent); // Attach the camera to the end of the boom and let the boom adjust to match the controller orientation
 
 	XRPassthroughLayer = CreateDefaultSubobject<UOculusXRPassthroughLayerComponent>(TEXT("OculusXRPassthroughLayer"));
 	if (XRPassthroughLayer) {
@@ -248,37 +249,25 @@ void AExperimentCharacter::SetupSampling() {
 }
 
 void AExperimentCharacter::UpdateMovement() {
-#if WITH_EDITOR
-	UE_LOG(LogTemp, Warning,
-		TEXT("[AExperimentCharacter::UpdateMovement] running with editor, forcing update to work with MetaXR simulator!"))
-	if (bUseVR) {
-		// todo: bUseVR - Make variable
-		if (UHeadMountedDisplayFunctionLibrary::IsHeadMountedDisplayConnected()) {
-			FRotator HMDRotation {};
-			FVector HMDLocation {};
-			UHeadMountedDisplayFunctionLibrary::GetOrientationAndPosition(HMDRotation, HMDLocation);
-			CurrentLocation = HMDLocation + this->VROrigin->GetComponentLocation();
-			CurrentRotation = HMDRotation;
-			Server_UpdateRoomScaleLocation(); // was UpdateRoomscaleLocation()
-		}else {
-			UE_LOG(LogTemp, Warning, TEXT("[AExperimentCharacter::UpdateMovement] IsHeadMountedDisplayConnected FALSE"))
-		}
-	}
-	Server_UpdateMovement(CurrentLocation, CurrentRotation);
-	return;
-#endif
 	if (HasAuthority()) {
-		// UE_LOG(LogTemp, Warning,TEXT("[AExperimentCharacter::UpdateMovement] Ran from server!"))
+		UE_LOG(LogTemp, Warning,TEXT("[AExperimentCharacter::UpdateMovement] Ran from server!"))
 	} else {
 		UE_LOG(LogTemp, Log, TEXT("[AExperimentCharacter::UpdateMovement] Running on client."))
 		if (bUseVR) { // todo: bUseVR - Make variable 
-			FRotator HMDRotation {};
-			FVector HMDLocation {};
-			UHeadMountedDisplayFunctionLibrary::GetOrientationAndPosition(HMDRotation, HMDLocation);
-			CurrentLocation = HMDLocation + this->VROrigin->GetComponentLocation();
-			CurrentRotation = HMDRotation;
-			Server_UpdateRoomScaleLocation();
-			// Server_UpdateMovement(CurrentLocation, CurrentRotation);
+			if (UHeadMountedDisplayFunctionLibrary::IsHeadMountedDisplayConnected()) {
+				FRotator HMDRotation {};
+				FVector HMDLocation {};
+				UHeadMountedDisplayFunctionLibrary::GetOrientationAndPosition(HMDRotation, HMDLocation);
+				CurrentLocation = HMDLocation + this->VROrigin->GetComponentLocation();
+				CurrentRotation = HMDRotation;
+				Camera->SetWorldLocation(CurrentLocation);
+				Camera->SetWorldRotation(CurrentRotation);
+				UE_LOG(LogTemp, Log, TEXT("[AExperimentCharacter::UpdateMovement] HMDLocation: %s"),
+					*CurrentLocation.ToString())
+				Server_UpdateRoomScaleLocation(); // was UpdateRoomscaleLocation()
+			}else {
+				UE_LOG(LogTemp, Warning, TEXT("[AExperimentCharacter::UpdateMovement] IsHeadMountedDisplayConnected FALSE"))
+			}
 		} else {
 			CurrentLocation = RootComponent->GetComponentLocation();
 			CurrentRotation = GetActorRotation();
@@ -342,13 +331,25 @@ void AExperimentCharacter::BeginPlay() {
 void AExperimentCharacter::Server_UpdateRoomScaleLocation_Implementation() {
 	UE_LOG(LogTemp, Log, TEXT("[AExperimentCharacter::Server_UpdateRoomScaleLocation_Implementation] called"))
 	const FVector CapsuleLocation = GetCapsuleComponent()->GetComponentLocation();
-	FVector CameraLocation = Camera->GetComponentLocation();
+
+	FVector CameraLocation {}; 
+	CameraLocation = Camera->GetComponentLocation();
 	CameraLocation.Z = 0.0f;
 	FVector DeltaLocation = CameraLocation - CapsuleLocation;
 	DeltaLocation.Z = 0.0f;
 	AddActorWorldOffset(DeltaLocation, false, nullptr, ETeleportType::TeleportPhysics);
 	VROrigin->AddWorldOffset(-DeltaLocation, false, nullptr, ETeleportType::TeleportPhysics);
 	GetCapsuleComponent()->SetWorldLocation(CameraLocation);
+
+	FVector CamRelative = Camera->GetRelativeLocation(); 
+	UE_LOG(LogTemp, Log, TEXT("[AExperimentCharacter::Server_UpdateRoomScaleLocation_Implementation] Camera: %s"),
+		*CameraLocation.ToString())
+		
+	UE_LOG(LogTemp, Log, TEXT("[AExperimentCharacter::Server_UpdateRoomScaleLocation_Implementation] Camera relative: %s"),
+		*CamRelative.ToString())
+
+	UE_LOG(LogTemp, Log, TEXT("[AExperimentCharacter::Server_UpdateRoomScaleLocation_Implementation] Capsule: %s"),
+		*CapsuleLocation.ToString())
 }
 
 bool AExperimentCharacter::Server_UpdateRoomScaleLocation_Validate() {
@@ -357,8 +358,7 @@ bool AExperimentCharacter::Server_UpdateRoomScaleLocation_Validate() {
 
 void AExperimentCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
-
-	// DOREPLIFETIME(AExperimentCharacter, MotionControllerRight)
+	DOREPLIFETIME(AExperimentCharacter, Camera)
 }
 
 void AExperimentCharacter::PossessedBy(AController* NewController) {
@@ -443,13 +443,9 @@ void AExperimentCharacter::Tick(float DeltaSeconds) {
 			UE_LOG(LogTemp, Log, TEXT("[AExperimentCharacter::Tick] bBlockInput: %s"),
 					bBlockInput ? TEXT("true") : TEXT("false"))
 
-
 		}
 	}
 	
-	if (GEngine) GEngine->AddOnScreenDebugMessage(-1, .05f, FColor::Red,
-		FString::Printf(TEXT("[APawnMain::OnOverlapBegin()] %s"), *GetActorLocation().ToString()));
-
 	/*if (bUseVR) { // todo: bUseVR - Make variable 
 		FRotator HMDRotation {};
 		FVector HMDLocation {};
