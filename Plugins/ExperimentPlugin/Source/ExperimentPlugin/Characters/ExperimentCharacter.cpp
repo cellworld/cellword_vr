@@ -17,7 +17,10 @@ AExperimentCharacter::AExperimentCharacter() {
 	/* network stuff */
 	bReplicates      = true;
 	bNetLoadOnClient = true;
-	
+
+	PrimaryActorTick.bCanEverTick = true;
+	PrimaryActorTick.bStartWithTickEnabled = true;
+
 	/* set our turn rates for input */
 	BaseTurnRate	 = 45.f;
 	BaseLookUpRate	 = 45.f;
@@ -48,10 +51,11 @@ AExperimentCharacter::AExperimentCharacter() {
 
 	// Create a follow camera
 	Camera = CreateDefaultSubobject<UCameraComponent>(TEXT("Camera"));
-	Camera->bUsePawnControlRotation = false; // Camera does not rotate relative to arm
-	Camera->SetMobility(EComponentMobility::Movable);
-	Camera->bLockToHmd = true;
 	Camera->SetupAttachment(RootComponent); // Attach the camera to the end of the boom and let the boom adjust to match the controller orientation
+	Camera->SetMobility(EComponentMobility::Movable);
+	Camera->SetRelativeLocation(FVector(0.0f, 0.0f, 96.0f)); // todo: make sure this is OK
+	Camera->bUsePawnControlRotation = false; // Camera does not rotate relative to arm
+	Camera->bLockToHmd = true;
 
 	XRPassthroughLayer = CreateDefaultSubobject<UOculusXRPassthroughLayerComponent>(TEXT("OculusXRPassthroughLayer"));
 	if (XRPassthroughLayer) {
@@ -260,12 +264,17 @@ void AExperimentCharacter::UpdateMovement() {
 				UHeadMountedDisplayFunctionLibrary::GetOrientationAndPosition(HMDRotation, HMDLocation);
 				CurrentLocation = HMDLocation + this->VROrigin->GetComponentLocation();
 				CurrentRotation = HMDRotation;
-				Camera->SetWorldLocation(CurrentLocation);
-				Camera->SetWorldRotation(CurrentRotation);
+				// Camera->SetWorldLocation(CurrentLocation);
+				// Camera->SetWorldRotation(CurrentRotation);
 				UE_LOG(LogTemp, Log, TEXT("[AExperimentCharacter::UpdateMovement] HMDLocation: %s"),
 					*CurrentLocation.ToString())
-				Server_UpdateRoomScaleLocation(); // was UpdateRoomscaleLocation()
-			}else {
+				
+				UE_LOG(LogTemp, Log, TEXT("[AExperimentCharacter::UpdateMovement] Camera: %s"),
+					*Camera->GetComponentLocation().ToString())
+				
+				Server_UpdateCameraLocation(Camera->GetComponentLocation());
+				Server_UpdateRoomScaleLocation(); 
+			} else {
 				UE_LOG(LogTemp, Warning, TEXT("[AExperimentCharacter::UpdateMovement] IsHeadMountedDisplayConnected FALSE"))
 			}
 		} else {
@@ -328,10 +337,14 @@ void AExperimentCharacter::BeginPlay() {
 	}
 }
 
+bool AExperimentCharacter::Server_UpdateRoomScaleLocation_Validate() {
+	return true;
+}
+
 void AExperimentCharacter::Server_UpdateRoomScaleLocation_Implementation() {
 	UE_LOG(LogTemp, Log, TEXT("[AExperimentCharacter::Server_UpdateRoomScaleLocation_Implementation] called"))
+	
 	const FVector CapsuleLocation = GetCapsuleComponent()->GetComponentLocation();
-
 	FVector CameraLocation {}; 
 	CameraLocation = Camera->GetComponentLocation();
 	CameraLocation.Z = 0.0f;
@@ -340,8 +353,8 @@ void AExperimentCharacter::Server_UpdateRoomScaleLocation_Implementation() {
 	AddActorWorldOffset(DeltaLocation, false, nullptr, ETeleportType::TeleportPhysics);
 	VROrigin->AddWorldOffset(-DeltaLocation, false, nullptr, ETeleportType::TeleportPhysics);
 	GetCapsuleComponent()->SetWorldLocation(CameraLocation);
-
-	FVector CamRelative = Camera->GetRelativeLocation(); 
+	FVector CamRelative = Camera->GetRelativeLocation();
+	
 	UE_LOG(LogTemp, Log, TEXT("[AExperimentCharacter::Server_UpdateRoomScaleLocation_Implementation] Camera: %s"),
 		*CameraLocation.ToString())
 		
@@ -352,8 +365,21 @@ void AExperimentCharacter::Server_UpdateRoomScaleLocation_Implementation() {
 		*CapsuleLocation.ToString())
 }
 
-bool AExperimentCharacter::Server_UpdateRoomScaleLocation_Validate() {
+bool AExperimentCharacter::Server_UpdateCameraLocation_Validate(FVector InCameraLocation) {
 	return true;
+}
+
+void AExperimentCharacter::Server_UpdateCameraLocation_Implementation(FVector InCameraLocation) {
+	UE_LOG(LogTemp, Log,
+		TEXT("[AExperimentCharacter::Server_UpdateCameraLocation_Implementation] InCameraLocation: %s"),
+		*InCameraLocation.ToString())
+
+	if (!ensure(Camera)) return;
+	Camera->SetWorldLocation(InCameraLocation);
+	UE_LOG(LogTemp, Log,
+		TEXT("[AExperimentCharacter::Server_UpdateCameraLocation_Implementation] Camera: %s"),
+		*Camera->GetComponentLocation().ToString())
+
 }
 
 void AExperimentCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const {
@@ -404,6 +430,7 @@ bool AExperimentCharacter::Server_UpdateOwner_Validate(APlayerController* InOwne
 	UE_LOG(LogTemp, Log, TEXT("[AExperimentCharacter::Server_UpdateOwner_Validate]"))
 	return true;
 }
+
 void AExperimentCharacter::Server_UpdateOwner_Implementation(APlayerController* InOwnerPlayerController) {
 	UE_LOG(LogTemp, Log, TEXT("[AExperimentCharacter::Server_UpdateOwner_Implementation]"))
 	if (InOwnerPlayerController) {
@@ -445,19 +472,7 @@ void AExperimentCharacter::Tick(float DeltaSeconds) {
 
 		}
 	}
-	
-	/*if (bUseVR) { // todo: bUseVR - Make variable 
-		FRotator HMDRotation {};
-		FVector HMDLocation {};
-		UHeadMountedDisplayFunctionLibrary::GetOrientationAndPosition(HMDRotation, HMDLocation);
-		CurrentLocation = HMDLocation + this->VROrigin->GetComponentLocation();
-		CurrentRotation = HMDRotation;
-		UpdateRoomScaleLocation();
-		// Server_UpdateMovement(CurrentLocation, CurrentRotation);
-	} else {
-		CurrentLocation = RootComponent->GetComponentLocation();
-		CurrentRotation = GetActorRotation();
-	}*/
+
 }
 
 bool AExperimentCharacter::Multi_OnUpdateMovement_Validate(const FVector& InLocation, const FRotator& InRotation) {

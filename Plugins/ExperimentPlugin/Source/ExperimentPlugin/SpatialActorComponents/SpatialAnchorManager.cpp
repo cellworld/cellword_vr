@@ -6,7 +6,6 @@
 
 USpatialAnchorManager::USpatialAnchorManager() {
 	ModelSpawnPositioner = CreateDefaultSubobject<USceneComponent>(TEXT("ModelSpawnPositioner"));
-	
 }
 
 void USpatialAnchorManager::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const {

@@ -87,7 +87,12 @@ public:
 	void Server_UpdateRoomScaleLocation();
 	bool Server_UpdateRoomScaleLocation_Validate();
 	void Server_UpdateRoomScaleLocation_Implementation();
-
+	
+	UFUNCTION(Server, Reliable, WithValidation, BlueprintCallable)
+	void Server_UpdateCameraLocation(FVector InCameraLocation);
+	bool Server_UpdateCameraLocation_Validate(FVector InCameraLocation);
+	void Server_UpdateCameraLocation_Implementation(FVector InCameraLocation);
+	
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 	virtual void BeginPlay() override;
 	virtual void PossessedBy(AController* NewController) override;
