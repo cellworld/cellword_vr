@@ -238,7 +238,7 @@ void AExperimentCharacter::OnRep_Owner() {
 void AExperimentCharacter::SetupSampling() {
 	UE_LOG(LogTemp, Log, TEXT("[AExperimentCharacter::SetupSampling] Running on Android"))
 	if (bUseVR){
-		UHeadMountedDisplayFunctionLibrary::SetTrackingOrigin(EHMDTrackingOrigin::Stage);
+		UHeadMountedDisplayFunctionLibrary::SetTrackingOrigin(EHMDTrackingOrigin::Floor); // recommended by Meta's docs
 		Camera->bUsePawnControlRotation = false; 
 	}else {
 		Camera->bUsePawnControlRotation = true; 

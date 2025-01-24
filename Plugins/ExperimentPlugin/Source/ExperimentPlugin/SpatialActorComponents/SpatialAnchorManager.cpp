@@ -360,8 +360,6 @@ void USpatialAnchorManager::Server_SpawnSupportAnchors_Implementation(const FVec
 	if (UWorld* World = GetWorld()) {
 		FActorSpawnParameters SpawnParams;
 		SpawnParams.Owner = GetOwner(); // Optional: Set the owner
-			UE_LOG(LogTemp, Log, TEXT("[USpatialAnchorManager::Server_SpawnSupportAnchors_Implementation] SAM owner: %s"),
-				*SpawnParams.Owner->GetName());
 		
 		// SpawnParams.Instigator = Cast<ACharacter>(GetOwner()); // Optional: Set the instigator
 		const FRotator SpawnRotation = FRotator::ZeroRotator;
@@ -379,7 +377,7 @@ void USpatialAnchorManager::Server_SpawnSupportAnchors_Implementation(const FVec
 		Client_SetSupportAnchors(SpawnedSupportAnchors);
 		GetOwner()->ForceNetUpdate();
 		UE_LOG(LogTemp, Log,
-			TEXT("[USpatialAnchorManager::Server_SpawnSupportAnchors_Implementation] SpawnedSupportAnchors.Num() = %i"),
+			TEXT("[USpatialAnchorManager::Server_SpawnSupportAnchors_Implementation] SpawnedSupportAnchors.Num: %i"),
 			SpawnedSupportAnchors.Num());
 	}
 }
