@@ -1,6 +1,7 @@
 ﻿#include "SpatialAnchorManager.h"
 
 #include "KismetSystemLibrary.h"
+#include "ExperimentPlugin/FunctionLibraries/CoordinateMathFLibrary.h"
 #include "Net/UnrealNetwork.h"
 #include "ExperimentPlugin/GameModes/ExperimentGameMode.h"
 
@@ -12,8 +13,12 @@ void USpatialAnchorManager::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 	DOREPLIFETIME(USpatialAnchorManager, Habitat);
 	DOREPLIFETIME(USpatialAnchorManager, EntryDoorLocation);
+	
 	DOREPLIFETIME(USpatialAnchorManager, SpawnedAnchors);
 	DOREPLIFETIME(USpatialAnchorManager, SpawnedAnchorsCount);
+	DOREPLIFETIME(USpatialAnchorManager, SpawnedSupportAnchors);
+	DOREPLIFETIME(USpatialAnchorManager, SpawnedSupportAnchorsCount);
+
 	DOREPLIFETIME(USpatialAnchorManager, MAX_ANCHOR_COUNT);
 	DOREPLIFETIME(USpatialAnchorManager, EntryAnchor);
 	// DOREPLIFETIME(USpatialAnchorManager, ModelSpawnPositioner);
@@ -69,12 +74,17 @@ void USpatialAnchorManager::Server_CreateOculusSpatialAnchor_Implementation() {
 }
 
 void USpatialAnchorManager::OnRep_SpawnedAnchors() {
-	UE_LOG(LogTemp, Warning, TEXT("USpatialAnchorManager::OnRep_SpawnedAnchors"))
+	UE_LOG(LogTemp, Warning, TEXT("[USpatialAnchorManager::OnRep_SpawnedAnchors]"))
+}
+
+void USpatialAnchorManager::OnRep_SpawnedSupportAnchors() {
+	UE_LOG(LogTemp, Warning, TEXT("[USpatialAnchorManager::OnRep_SpawnedSupportAnchors]"))
 }
 
 bool USpatialAnchorManager::Client_CreateOculusSpatialAnchor_Validate() {
 	return true;
 }
+
 void USpatialAnchorManager::Client_CreateOculusSpatialAnchor_Implementation() {
 	
 }
@@ -107,18 +117,16 @@ void USpatialAnchorManager::Server_ToggleExperiment_Implementation() {
 	}
 	UE_LOG(LogTemp, Log, TEXT("[USpatialAnchorManager::Server_ToggleExperiment_Implementation] Exiting"))
 }
+
 bool USpatialAnchorManager::Server_ToggleExperiment_Validate() { return true;}
 
-/*inputs:
- * fvector worldscalefactor
- */
 void USpatialAnchorManager::Server_MoveLevelActor_Implementation(const FVector& InLocation, const FVector& InRotation,
 	const FVector& InScale) {
 	UE_LOG(LogTemp, Log, TEXT("[USpatialAnchorManager::Server_MoveLevelActor_Implementation]"))
 	if (!ensure(GetOwner())) { return; }
 
 	if (!GetOwner()->HasAuthority()) {
-		UE_LOG(LogTemp, Log, TEXT("[USpatialAnchorManager::Server_MoveLevelActor_Implementation]"))
+		UE_LOG(LogTemp, Log, TEXT("[USpatialAnchorManager::Server_MoveLevelActor_Implementation] NO AUTHORITY"))
 		return;
 	}
 
@@ -195,6 +203,56 @@ void USpatialAnchorManager::Client_SetEntryAnchor_Implementation(AActor* InEntry
 	EntryAnchor = InEntryAnchor;
 }
 
+bool USpatialAnchorManager::Client_SetSupportAnchors_Validate(const TArray<AActor*>& InEntryAnchors) { return true; }
+
+void USpatialAnchorManager::HandleCreateComplete(EOculusXRAnchorResult::Type CreateResult, UOculusXRAnchorComponent* Anchor){
+	UE_LOG(LogTemp, Log, TEXT("[USpatialAnchorManager::HandleCreateComplete] %i"), CreateResult)
+	if (Anchor) {
+		UE_LOG(LogTemp, Log, TEXT("[USpatialAnchorManager::HandleCreateComplete] Anchor: %s"),
+			*Anchor->GetName())
+	}
+}
+
+void USpatialAnchorManager::Client_SetSupportAnchors_Implementation(const TArray<AActor*>& InEntryAnchors) {
+	UE_LOG(LogTemp, Log, TEXT("[USpatialAnchorManager::Client_SetSupportAnchors_Implementation] called"))
+	SpawnedSupportAnchors        = InEntryAnchors;
+	SpawnedSupportAnchorsCount   = InEntryAnchors.Num();
+	UE_LOG(LogTemp, Log, TEXT("[USpatialAnchorManager::Client_SetSupportAnchors_Implementation] Count: %i"),
+		SpawnedSupportAnchorsCount)
+
+	if (SpawnedSupportAnchorsCount == MAX_SUPPORT_ANCHOR_COUNT) {
+		UE_LOG(LogTemp, Log,
+			TEXT(
+				"[USpatialAnchorManager::Client_SetSupportAnchors_Implementation] SPAWNED ALL ANCHORS (MAX_SUPPORT_ANCHOR_COUNT = %i)"),
+			MAX_SUPPORT_ANCHOR_COUNT)
+		for (AActor* AnchorMdl : SpawnedSupportAnchors) {
+			if (!ensure(AnchorMdl)) return; 
+			UE_LOG(LogTemp, Log, TEXT("[USpatialAnchorManager::Client_SetSupportAnchors_Implementation] ABOUT TO CALL CREATE ANCHOR"))
+			bool bStartedAsync = OculusXRAnchors::FOculusXRAnchors::CreateSpatialAnchor(
+			AnchorMdl->GetActorTransform(),
+			AnchorMdl,
+			FOculusXRSpatialAnchorCreateDelegate::CreateUObject(this, &USpatialAnchorManager::HandleCreateComplete),
+			AnchorResult);
+			UE_LOG(LogTemp, Log, TEXT("[USpatialAnchorManager::Client_SetSupportAnchors_Implementation] CALLED CREATE ANCHOR"))
+		}
+	} else {
+		UE_LOG(LogTemp, Log, TEXT("[USpatialAnchorManager::Client_SetSupportAnchors_Implementation] Still waiting for more anchors. (n now = %i)"),
+			SpawnedSupportAnchorsCount)
+	}
+
+	// OculusXRAnchors::FOculusXRAnchors::CreateSpatialAnchor(
+	// 	SpawnedSupportAnchors[1]->GetActorTransform(),
+	// 	SpawnedSupportAnchors[1], HandleMe,AnchorResult);
+}
+
+bool USpatialAnchorManager::Client_AttachAnchorToActor_Validate(const TArray<AActor*>& InEntryAnchors) {
+	return true;
+}
+
+void USpatialAnchorManager::Client_AttachAnchorToActor_Implementation(const TArray<AActor*>& InEntryAnchors) {
+	
+}
+
 bool USpatialAnchorManager::Server_AnchorCreate_Validate(const FVector InLocation) {
 	UE_LOG(LogTemp, Log, TEXT("[USpatialAnchorManager::Server_AnchorCreate_Validate] called"))
 	return true;
@@ -203,7 +261,7 @@ bool USpatialAnchorManager::Server_AnchorCreate_Validate(const FVector InLocatio
 void USpatialAnchorManager::Server_AnchorCreate_Implementation(const FVector InLocation) {
 	UE_LOG(LogTemp, Log, TEXT("[USpatialAnchorManager::Server_AnchorCreate_Implementation] called"))
 	UE_LOG(LogTemp, Log,
-		TEXT("[USpatialAnchorManager::Server_AnchorCreate_Implementation] Calling Multi_SpawnAnchorActor from Server: %s"),
+		TEXT("[USpatialAnchorManager::Server_AnchorCreate_Implementation] InLocation: %s"),
 		*InLocation.ToString())
 
 	// Multi_SpawnAnchorActor(InLocation);
@@ -248,10 +306,81 @@ void USpatialAnchorManager::Server_AnchorCreate_Implementation(const FVector InL
 			EntryAnchor->SetReplicates(true);
 			Client_SetEntryAnchor(SpawnedAnchorModel); // not working - EntryAnchor still NULL on client side 
 		}
+
+		/* handle support anchors */
+		constexpr int NumSupportAnchorsToSpawn = 8; 
+		constexpr float SupportAnchorRadius = 25.0f;
+		TArray<FVector> SupportAnchorLocations = UCoordinateMathFLibrary::GeneratePoints3DSphere(
+			InLocation, // center of circle where points will be generated about
+			SupportAnchorRadius,
+			NumSupportAnchorsToSpawn);
+		
+		UE_LOG(LogTemp, Log,
+			TEXT("[USpatialAnchorManager::Server_AnchorCreate_Implementation] Generated points (n = %i)"),
+			SupportAnchorLocations.Num())
+		
+		for (FVector SupportAnchorLocation : SupportAnchorLocations) {
+			UE_LOG(LogTemp, Log, TEXT("[USpatialAnchorManager::Server_AnchorCreate_Implementation] Calling Server_SpawnSupportAnchors(). Location: %s"),
+				*SupportAnchorLocation.ToString())
+			Server_SpawnSupportAnchors(SupportAnchorLocation);	
+		}
 		
 		UE_LOG(LogTemp, Log,
 			TEXT("[USpatialAnchorManager::Server_AnchorCreate_Implementation] SpawnedAnchors.Num() = %i"),
 			SpawnedAnchors.Num());
+	}
+
+}
+
+bool USpatialAnchorManager::Server_SpawnSupportAnchors_Validate(const FVector InLocation) { return true; }
+
+void USpatialAnchorManager::Server_SpawnSupportAnchors_Implementation(const FVector InLocation) {
+	UE_LOG(LogTemp, Log, TEXT("[USpatialAnchorManager::Server_SpawnSupportAnchors_Implementation] called"))
+	UE_LOG(LogTemp, Log,
+		TEXT("[USpatialAnchorManager::Server_SpawnSupportAnchors_Implementation] InLocation: %s"),
+		*InLocation.ToString())
+
+	// Multi_SpawnAnchorActor(InLocation);
+	if (!ensure(AnchorsBPClass)) { return; }
+	
+	// if we reached maximum anchor count: destroy and empty anchor array
+	if (SpawnedSupportAnchors.Num() == MAX_SUPPORT_ANCHOR_COUNT) {
+		UE_LOG(LogTemp, Warning,
+			TEXT("[USpatialAnchorManager::Server_SpawnSupportAnchors_Implementation] Already have MAX_SUPPORT_ANCHOR_COUNT spawned anchors. Destroying prior to further spawning"))
+		for (auto* Anchor : SpawnedSupportAnchors) {
+			Anchor->Destroy();
+			UE_LOG(LogTemp, Warning, TEXT("[USpatialAnchorManager::Server_SpawnSupportAnchors_Implementation] Destroying anchors"))
+		}
+		SpawnedSupportAnchors.Empty(); 
+	}
+	
+	if (!ensure(AnchorsBPClass)) { return; }
+	UE_LOG(LogTemp, Log, TEXT("[USpatialAnchorManager::Server_SpawnSupportAnchors_Implementation] AnchorsBPClass found"));
+	
+	if (UWorld* World = GetWorld()) {
+		FActorSpawnParameters SpawnParams;
+		SpawnParams.Owner = GetOwner(); // Optional: Set the owner
+			UE_LOG(LogTemp, Log, TEXT("[USpatialAnchorManager::Server_SpawnSupportAnchors_Implementation] SAM owner: %s"),
+				*SpawnParams.Owner->GetName());
+		
+		// SpawnParams.Instigator = Cast<ACharacter>(GetOwner()); // Optional: Set the instigator
+		const FRotator SpawnRotation = FRotator::ZeroRotator;
+		
+		// Spawn the actor
+		AActor* SpawnedAnchorModel = GetWorld()->SpawnActor<AActor>(AnchorsBPClass,  InLocation, SpawnRotation, SpawnParams);
+		if (!SpawnedAnchorModel) {
+			UE_LOG(LogTemp, Error, TEXT("[USpatialAnchorManager::Server_SpawnSupportAnchors_Implementation] Spawn Failed!"));
+			return;
+		}
+		
+		SpawnedAnchorModel->SetActorScale3D(FVector(2.0f, 2.0f, 2.0f));
+		SpawnedAnchorModel->SetReplicates(true);
+		SpawnedSupportAnchors.Add(SpawnedAnchorModel);
+		Client_SetSupportAnchors(SpawnedSupportAnchors);
+		GetOwner()->ForceNetUpdate();
+		UE_LOG(LogTemp, Log,
+			TEXT("[USpatialAnchorManager::Server_SpawnSupportAnchors_Implementation] SpawnedSupportAnchors.Num() = %i"),
+			SpawnedSupportAnchors.Num());
 	}
 }
 

@@ -14,8 +14,8 @@ protected:
 	UPROPERTY(EditDefaultsOnly,Replicated)
 	// ReSharper disable once CppUE4CodingStandardNamingViolationWarning
 	int MAX_ANCHOR_COUNT = 2;
-	UPROPERTY(BlueprintReadWrite, Replicated)
-	int SpawnedAnchorsCount = 0;
+	int MAX_SUPPORT_ANCHOR_COUNT = 16;
+
 	
 public:
 	
@@ -56,10 +56,21 @@ public:
 	
 	UFUNCTION(Blueprintable)
 	virtual void OnRep_SpawnedAnchors();
+	UFUNCTION(Blueprintable)
+	virtual void OnRep_SpawnedSupportAnchors();
 	
 	UPROPERTY(BlueprintReadWrite,Replicated, ReplicatedUsing=OnRep_SpawnedAnchors, Category="Anchors")
 	TArray<AActor*> SpawnedAnchors;
 
+	UPROPERTY(BlueprintReadWrite,Replicated, Category="Anchors")
+	int SpawnedAnchorsCount = 0;
+	
+	UPROPERTY(BlueprintReadWrite,Replicated, ReplicatedUsing=OnRep_SpawnedSupportAnchors, Category="Anchors")
+	TArray<AActor*> SpawnedSupportAnchors;
+
+	UPROPERTY(BlueprintReadWrite,Replicated, Category="Anchors")
+	int SpawnedSupportAnchorsCount = 0; 
+	
 	UFUNCTION(Client, Reliable, WithValidation, BlueprintCallable)
 	void Client_CreateOculusSpatialAnchor();
 	bool Client_CreateOculusSpatialAnchor_Validate();
@@ -74,6 +85,11 @@ public:
 	void Server_AnchorCreate(const FVector InLocation);
 	bool Server_AnchorCreate_Validate(const FVector InLocation);
 	void Server_AnchorCreate_Implementation(const FVector InLocation);
+
+	UFUNCTION(Server, Reliable, WithValidation, BlueprintCallable)
+	void Server_SpawnSupportAnchors(const FVector InLocation);
+	bool Server_SpawnSupportAnchors_Validate(const FVector InLocation);
+	void Server_SpawnSupportAnchors_Implementation(const FVector InLocation);
 	
 	UFUNCTION(Server, Reliable, WithValidation, BlueprintCallable)
 	void Server_MoveLevelActor(const FVector& InLocation, const FVector& InRotation, const FVector& InScale);
@@ -89,6 +105,18 @@ public:
 	void Client_SetEntryAnchor(AActor* InEntryAnchor);
 	bool Client_SetEntryAnchor_Validate(AActor* InEntryAnchor);
 	void Client_SetEntryAnchor_Implementation(AActor* InEntryAnchor);
+	
+	UFUNCTION(Client, Reliable, WithValidation, BlueprintCallable)
+	void Client_SetSupportAnchors(const TArray<AActor*>& InEntryAnchors);
+	bool Client_SetSupportAnchors_Validate(const TArray<AActor*>& InEntryAnchors);
+	void Client_SetSupportAnchors_Implementation(const TArray<AActor*>& InEntryAnchors);
+	
+	UFUNCTION(Client, Reliable, WithValidation, BlueprintCallable)
+	void Client_AttachAnchorToActor(const TArray<AActor*>& InEntryAnchors);
+	bool Client_AttachAnchorToActor_Validate(const TArray<AActor*>& InEntryAnchors);
+	void Client_AttachAnchorToActor_Implementation(const TArray<AActor*>& InEntryAnchors);
+	
+	void HandleCreateComplete(EOculusXRAnchorResult::Type CreateResult, UOculusXRAnchorComponent* Anchor);
 	
 	UFUNCTION(Server, Reliable, WithValidation, BlueprintCallable)
 	void Server_FinishSpawn();
