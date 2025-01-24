@@ -37,10 +37,10 @@ void USpatialAnchorManager::TickComponent(float DeltaTime, ELevelTick TickType,
 }
 
 void USpatialAnchorManager::CreateOculusAnchorCallback(EOculusXRAnchorResult::Type ResultCB, UOculusXRAnchorComponent* Anchor) {
-	UE_LOG(LogTemp, Error, TEXT("[USpatialAnchorManager::CreateOculusAnchorCallback] Habitat NULL!"))
-	UE_LOG(LogTemp, Error, TEXT("[USpatialAnchorManager::CreateOculusAnchorCallback] Result: %i"),ResultCB)
+	UE_LOG(LogTemp, Log, TEXT("[USpatialAnchorManager::CreateOculusAnchorCallback] Habitat NULL!"))
+	UE_LOG(LogTemp, Log, TEXT("[USpatialAnchorManager::CreateOculusAnchorCallback] Result: %i"),ResultCB)
 	if (Anchor) {
-		UE_LOG(LogTemp, Error, TEXT("[USpatialAnchorManager::CreateOculusAnchorCallback] Result: %s"),*Anchor->GetName())
+		UE_LOG(LogTemp, Log, TEXT("[USpatialAnchorManager::CreateOculusAnchorCallback] Result: %s"),*Anchor->GetName())
 	}else {
 		UE_LOG(LogTemp, Error, TEXT("[USpatialAnchorManager::CreateOculusAnchorCallback] Anchor NULL"))
 	}
@@ -210,6 +210,7 @@ void USpatialAnchorManager::HandleCreateComplete(EOculusXRAnchorResult::Type Cre
 	if (Anchor) {
 		UE_LOG(LogTemp, Log, TEXT("[USpatialAnchorManager::HandleCreateComplete] Anchor: %s"),
 			*Anchor->GetName())
+		dbgSupportAnchorCount+=1;
 	}
 }
 
@@ -240,17 +241,23 @@ void USpatialAnchorManager::Client_SetSupportAnchors_Implementation(const TArray
 			SpawnedSupportAnchorsCount)
 	}
 
-	// OculusXRAnchors::FOculusXRAnchors::CreateSpatialAnchor(
-	// 	SpawnedSupportAnchors[1]->GetActorTransform(),
-	// 	SpawnedSupportAnchors[1], HandleMe,AnchorResult);
 }
 
-bool USpatialAnchorManager::Client_AttachAnchorToActor_Validate(const TArray<AActor*>& InEntryAnchors) {
+bool USpatialAnchorManager::Client_AttachAnchorToActor_Validate(AActor* InActor) {
 	return true;
 }
 
-void USpatialAnchorManager::Client_AttachAnchorToActor_Implementation(const TArray<AActor*>& InEntryAnchors) {
-	
+void USpatialAnchorManager::Client_AttachAnchorToActor_Implementation(AActor* InActor) {
+	UE_LOG(LogTemp, Log, TEXT("[USpatialAnchorManager::Client_AttachAnchorToActor_Implementation] Called"))
+
+	if (!ensure(InActor)) return;
+
+	bool bStartedAsync = OculusXRAnchors::FOculusXRAnchors::CreateSpatialAnchor(
+			InActor->GetActorTransform(),
+			InActor,
+			FOculusXRSpatialAnchorCreateDelegate::CreateUObject(this, &USpatialAnchorManager::HandleCreateComplete),
+			AnchorResult);
+	UE_LOG(LogTemp, Log, TEXT("[USpatialAnchorManager::Server_AnchorCreateCluster_Implementation] Spawned OK!"));
 }
 
 bool USpatialAnchorManager::Server_AnchorCreate_Validate(const FVector InLocation) {
@@ -335,14 +342,10 @@ void USpatialAnchorManager::Server_AnchorCreate_Implementation(const FVector InL
 bool USpatialAnchorManager::Server_SpawnSupportAnchors_Validate(const FVector InLocation) { return true; }
 
 void USpatialAnchorManager::Server_SpawnSupportAnchors_Implementation(const FVector InLocation) {
-	UE_LOG(LogTemp, Log, TEXT("[USpatialAnchorManager::Server_SpawnSupportAnchors_Implementation] called"))
 	UE_LOG(LogTemp, Log,
 		TEXT("[USpatialAnchorManager::Server_SpawnSupportAnchors_Implementation] InLocation: %s"),
 		*InLocation.ToString())
 
-	// Multi_SpawnAnchorActor(InLocation);
-	if (!ensure(AnchorsBPClass)) { return; }
-	
 	// if we reached maximum anchor count: destroy and empty anchor array
 	if (SpawnedSupportAnchors.Num() == MAX_SUPPORT_ANCHOR_COUNT) {
 		UE_LOG(LogTemp, Warning,
@@ -380,6 +383,48 @@ void USpatialAnchorManager::Server_SpawnSupportAnchors_Implementation(const FVec
 			TEXT("[USpatialAnchorManager::Server_SpawnSupportAnchors_Implementation] SpawnedSupportAnchors.Num: %i"),
 			SpawnedSupportAnchors.Num());
 	}
+}
+
+bool USpatialAnchorManager::Server_AnchorCreateCluster_Validate(FVector InCenterLocation) { return true;}
+
+void USpatialAnchorManager::Server_AnchorCreateCluster_Implementation(FVector InCenterLocation) {
+	UE_LOG(LogTemp, Log, TEXT("[USpatialAnchorManager::Server_AnchorCreateCluster_Implementation] InCenterLocation: %s"),
+		*InCenterLocation.ToString());
+
+	if (!ensure(AnchorsBPClass)) { return; }
+
+	// 1  generate points
+	constexpr int NumSupportAnchorsToSpawn = 8; 
+	constexpr float SupportAnchorRadius = 25.0f;
+	TArray<FVector> SupportAnchorLocations = UCoordinateMathFLibrary::GeneratePoints3DSphere(
+		InCenterLocation, // center of circle where points will be generated about
+		SupportAnchorRadius,
+		NumSupportAnchorsToSpawn);
+		
+	// 2 for points in points, spawn bpmodel
+	for (FVector SupportAnchorLocation : SupportAnchorLocations) {
+		if (UWorld* World = GetWorld()) {
+			FActorSpawnParameters SpawnParams;
+			SpawnParams.Owner = GetOwner(); // Optional: Set the owner
+		
+			const FRotator SpawnRotation = FRotator::ZeroRotator;
+		
+			AActor* SpawnedAnchorModel = GetWorld()->SpawnActor<AActor>(AnchorsBPClass,  SupportAnchorLocation, SpawnRotation, SpawnParams);
+			if (!SpawnedAnchorModel) {
+				UE_LOG(LogTemp, Error, TEXT("[USpatialAnchorManager::Server_AnchorCreateCluster_Implementation] Spawn Failed!"));
+				return;
+			}
+		
+			SpawnedAnchorModel->SetActorScale3D(FVector(1.0f, 1.0f, 1.0f));
+			SpawnedAnchorModel->SetReplicates(true);
+			
+			// 3 also spawn anchor and attach to bpmodel
+			Client_AttachAnchorToActor(SpawnedAnchorModel);
+			// 4 thats it
+
+		}
+	}
+	
 }
 
 bool USpatialAnchorManager::Server_MoveLevelActor_Validate(const FVector& InLocation, const FVector& InRotation,
@@ -475,7 +520,7 @@ void USpatialAnchorManager::Server_FinishSpawn_Implementation() {
 			if (!ExperimentGameMode->ExperimentClient->SendGetOcclusionLocationsRequest()) {
 				UE_LOG(LogTemp, Error, TEXT("[[USpatialAnchorManager::Server_FinishSpawn_Implementation]] Failed to SendGetOcclusionLocationsRequest"))
 			}else {
-				UE_LOG(LogTemp, Error, TEXT("[[USpatialAnchorManager::Server_FinishSpawn_Implementation]] Sent SendGetOcclusionLocationsRequest OK"))
+				UE_LOG(LogTemp, Log, TEXT("[[USpatialAnchorManager::Server_FinishSpawn_Implementation]] Sent SendGetOcclusionLocationsRequest OK"))
 			}
 		}
 	}
@@ -505,7 +550,7 @@ void USpatialAnchorManager::Server_HandleSpawnHabitat_Implementation(USceneCompo
 			FTransform SpawnTransform;
 			SpawnTransform.SetLocation(FVector::ZeroVector);
 
-			UE_LOG(LogTemp, Error, TEXT("[USpatialAnchorManager::Server_HandleSpawnHabitat_Implementation] Set Habitat Owner: %s"),
+			UE_LOG(LogTemp, Log, TEXT("[USpatialAnchorManager::Server_HandleSpawnHabitat_Implementation] Set Habitat Owner: %s"),
 				 GetOwner() ? *GetOwner()->GetName() : TEXT("NULL"));
 			
 			Habitat = GetWorld()->SpawnActorDeferred<AHabitat>(HabitatBPClass,  SpawnTransform);

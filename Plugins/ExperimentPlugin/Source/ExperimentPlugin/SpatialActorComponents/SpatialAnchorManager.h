@@ -15,6 +15,7 @@ protected:
 	// ReSharper disable once CppUE4CodingStandardNamingViolationWarning
 	int MAX_ANCHOR_COUNT = 2;
 	int MAX_SUPPORT_ANCHOR_COUNT = 16;
+	int dbgSupportAnchorCount = 0; 
 
 	
 public:
@@ -92,6 +93,12 @@ public:
 	void Server_SpawnSupportAnchors_Implementation(const FVector InLocation);
 	
 	UFUNCTION(Server, Reliable, WithValidation, BlueprintCallable)
+	void Server_AnchorCreateCluster(FVector InCenterLocation);
+	bool Server_AnchorCreateCluster_Validate(FVector InCenterLocation);
+	void Server_AnchorCreateCluster_Implementation(FVector InCenterLocation);
+	
+	
+	UFUNCTION(Server, Reliable, WithValidation, BlueprintCallable)
 	void Server_MoveLevelActor(const FVector& InLocation, const FVector& InRotation, const FVector& InScale);
 	bool Server_MoveLevelActor_Validate(const FVector& InLocation, const FVector& InRotation, const FVector& InScale);
 	void Server_MoveLevelActor_Implementation(const FVector& InLocation, const FVector& InRotation, const FVector& InScale);
@@ -112,10 +119,10 @@ public:
 	void Client_SetSupportAnchors_Implementation(const TArray<AActor*>& InEntryAnchors);
 	
 	UFUNCTION(Client, Reliable, WithValidation, BlueprintCallable)
-	void Client_AttachAnchorToActor(const TArray<AActor*>& InEntryAnchors);
-	bool Client_AttachAnchorToActor_Validate(const TArray<AActor*>& InEntryAnchors);
-	void Client_AttachAnchorToActor_Implementation(const TArray<AActor*>& InEntryAnchors);
-	
+	void Client_AttachAnchorToActor(AActor* InActor);
+	bool Client_AttachAnchorToActor_Validate(AActor* InActor);
+	void Client_AttachAnchorToActor_Implementation(AActor* InActor);
+
 	void HandleCreateComplete(EOculusXRAnchorResult::Type CreateResult, UOculusXRAnchorComponent* Anchor);
 	
 	UFUNCTION(Server, Reliable, WithValidation, BlueprintCallable)

@@ -318,12 +318,6 @@ void AExperimentCharacter::BeginPlay() {
 			UHeadMountedDisplayFunctionLibrary::SetTrackingOrigin(EHMDTrackingOrigin::Floor);
 			UHeadMountedDisplayFunctionLibrary::ResetOrientationAndPosition();
 		}
-		// if (AExperimentPlayerControllerVR* CurrentPlayerController = Cast<AExperimentPlayerControllerVR>(GetController())) {
-		// 	UE_LOG(LogTemp, Log, TEXT("[AExperimentCharacter::Tick] AExperimentPlayerController is valid. Changed input mode to GameOnly."))
-		// 	FInputModeGameOnly InputModeData;
-		// 	CurrentPlayerController->SetInputMode(InputModeData);
-		// 	// CurrentPlayerController->SetShowMouseCursor(false);
-		// }
 	}
 	
 	/* Add Input Mapping Context */
