@@ -396,11 +396,11 @@ void USpatialAnchorManager::Server_AnchorCreateCluster_Implementation(FVector In
 	// 1  generate points
 	constexpr int NumSupportAnchorsToSpawn = 8; 
 	constexpr float SupportAnchorRadius = 25.0f;
-	TArray<FVector> SupportAnchorLocations = UCoordinateMathFLibrary::GeneratePoints3DSphere(
+	const TArray<FVector> SupportAnchorLocations = UCoordinateMathFLibrary::GeneratePoints3DSphere(
 		InCenterLocation, // center of circle where points will be generated about
 		SupportAnchorRadius,
 		NumSupportAnchorsToSpawn);
-		
+
 	// 2 for points in points, spawn bpmodel
 	for (FVector SupportAnchorLocation : SupportAnchorLocations) {
 		if (UWorld* World = GetWorld()) {

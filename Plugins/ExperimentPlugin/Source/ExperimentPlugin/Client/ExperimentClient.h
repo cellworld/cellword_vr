@@ -219,7 +219,6 @@ public:
 
 	UPROPERTY(EditAnywhere, Blueprintable)
 	FServerInfo ServerInfo = FServerInfo();
-	
 	/* ==== server stuff ==== */
 	// const FString ServerIP         = "192.168.1.199";  // static vr backpack win11 PACKAGED ONLY
 	// const int TrackingPort	           = 4791;

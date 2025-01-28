@@ -110,18 +110,12 @@ void AExperimentGameMode::EndPlay(const EEndPlayReason::Type EndPlayReason) {
 void AExperimentGameMode::Tick(float DeltaTime) {
 	Super::Tick(DeltaTime);
 	
-	UE_LOG(LogTemp, Log, TEXT("AExperimentGameMode::Tick] NumPlayers: %i"), GetNumPlayers())
 	TArray<AActor*> FoundActors; 
 	UGameplayStatics::GetAllActorsOfClass(GetWorld(), DefaultPawnClass, FoundActors);
 
-	UE_LOG(LogTemp, Log, TEXT("[AExperimentGameMode::Tick] actors found (class:  %s): %i"),
-		*DefaultPawnClass->GetName(), FoundActors.Num())
-	
 	TArray<AActor*> FoundHabitats; 
 	UGameplayStatics::GetAllActorsOfClass(GetWorld(), AHabitat::StaticClass(), FoundHabitats);
 
-	UE_LOG(LogTemp, Log, TEXT("[AExperimentGameMode::Tick] Habitats found: %i"), FoundHabitats.Num())
-	
 	if (GetNumPlayers() > 0) {
 		// todo: change cast back to AExperimentGameState
 		if (AGameStateBase* ExperimentGameState = Cast<AGameStateBase>(GameState)) { 
