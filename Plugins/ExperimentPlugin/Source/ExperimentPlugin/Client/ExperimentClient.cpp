@@ -449,9 +449,6 @@ void AExperimentClient::UpdatePreyPosition(const FVector InVector, const FRotato
 	Step.rotation    = InRotation.Yaw;
 	
 	UE_LOG(LogTemp, Log, TEXT("[UpdatePreyPosition] ==== InVector: %s"), *InVector.ToString())
-	UE_LOG(LogTemp, Log, TEXT("[UpdatePreyPosition] OffsetOriginTransform: %s"), *OffsetOriginTransform.ToString())
-	UE_LOG(LogTemp, Log, TEXT("[UpdatePreyPosition] RotatedVector: %s"), *RotatedVector.ToString())
-	UE_LOG(LogTemp, Log, TEXT("[UpdatePreyPosition] InVectorRelative: %s"), *InVectorRelative.ToString())
 	UE_LOG(LogTemp, Log, TEXT("[UpdatePreyPosition] Step: %s ==== "), *UExperimentUtils::StepToJsonString(Step))
 	
 	if (ensure(ExperimentManager->IsValidLowLevelFast() && ExperimentManager->Stopwatch->IsValidLowLevelFast())) {
