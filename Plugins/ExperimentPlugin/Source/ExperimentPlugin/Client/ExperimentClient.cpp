@@ -953,7 +953,8 @@ void AExperimentClient::ResetWorldState() {
 	ExperimentManager->SetInEpisode(false);
 	ExperimentInfo.SetStatus(EExperimentStatus::WaitingEpisode);
 	OcclusionsStruct.SetAllHidden();
-	this->SetPredatorIsVisible(false);
+	// keep Predator visible to acclimate player to predator's capture radius
+	this->SetPredatorIsVisible(true); 
 }
 
 void AExperimentClient::OnEpisodeFinished() {

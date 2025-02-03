@@ -99,12 +99,6 @@ void AExperimentPlayerControllerVR::Tick(float DeltaTime) {
 	// AExperimentPlayerState* PlayerStateTemp = GetPlayerState<AExperimentPlayerState>(); 
 	// UE_LOG(LogTemp, Log, TEXT("[AExperimentPlayerControllerVR::Tick] IsSpectator? %s"),
 	// 	PlayerStateTemp ? PlayerStateTemp->IsSpectator() : TEXT("PlayerState NULL"))
-	
-	UE_LOG(LogTemp, Log, TEXT("[AExperimentPlayerControllerVR::Tick] bIsLocalPlayerController = %s"),
-			IsLocalPlayerController() ? TEXT("true") : TEXT("false"))
-
-	UE_LOG(LogTemp, Log, TEXT("[AExperimentPlayerControllerVR::Tick] PC (%s) controlling pawn (%s)"),
-			*GetName(), GetPawn() ? *GetPawn()->GetName() : TEXT("NULL"))
 
 }
 
