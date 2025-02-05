@@ -74,18 +74,9 @@ bool AExperimentClient::SpawnAndPossessPredator() {
 	SpawnLocation.x = 0.9;
 	SpawnLocation.y = 0.5;
 
-	UE_LOG(LogTemp, Error, TEXT("[AExperimentClient::SpawnAndPossessPredator] WorldScale: %0.2f"),
-		OffsetOriginTransform.GetScale3D().X);
-
 	const FVector SpawnVector = UExperimentUtils::CanonicalToVrV2(SpawnLocation, this->MapLength, this->WorldScale);
-	const FVector SpawnVectorAdjusted = SpawnVector;/* + FVector(3.0f,117.0f,0.0f); // mesh offset*/
-
-	FTransform SpawnTransform{};
-	// SpawnTransform.SetLocation(OffsetOriginTransform.TransformPosition(SpawnVectorAdjusted));
-	// SpawnTransform.SetRotation(OffsetOriginTransform.GetRotation());
-	// SpawnTransform.SetScale3D(OffsetOriginTransform.GetScale3D());
-
-	// todo: add WorldOffset
+	const FVector SpawnVectorAdjusted = SpawnVector;
+	
 	this->PredatorBasic = GetWorld()->SpawnActor<AExperimentPredator>(
 		AExperimentPredator::StaticClass(),
 		SpawnVectorAdjusted, Rotation, SpawnParams);
@@ -95,9 +86,12 @@ bool AExperimentClient::SpawnAndPossessPredator() {
 		       TEXT("[AExperimentClient::SpawnAndPossessPredator()] Spawn APredatorBasic Failed!"));
 		return false;
 	}
-
+	
+	UE_LOG(LogTemp, Error, TEXT("[AExperimentClient::SpawnAndPossessPredator] Predator Scale (WS*SF): %0.2f"),
+		OffsetOriginTransform.GetScale3D().X * PredatorScaleFactor);
+	
 	this->PredatorBasic->SetActorScale3D(
-		FVector(0.5f, 0.5f, 0.5f)*this->PredatorScaleFactor*this->OffsetOriginTransform.GetScale3D().X);
+		FVector(1.0f, 1.0f, 1.0f) * PredatorScaleFactor * OffsetOriginTransform.GetScale3D().X);
 	this->SetPredatorIsVisible(false);
 	return true;
 }
@@ -321,8 +315,7 @@ void AExperimentClient::SetPredatorIsVisible(const bool bNewVisibility) {
 		       !bNewVisibility);
 	}
 	else {
-		UE_LOG(LogTemp, Error,
-		       TEXT("[AExperimentClient::SetActorHiddenInGame] PredatorBasic NULL"));
+		UE_LOG(LogTemp, Error, TEXT("[AExperimentClient::SetActorHiddenInGame] PredatorBasic NULL"));
 	}
 }
 
@@ -916,20 +909,8 @@ void AExperimentClient::OnEpisodeStarted() {
 	// todo: get proper index from ExperimentManager; either fetch or pass as input
 
 	UE_LOG(LogTemp, Log,
-	       TEXT("[AExperimentClient::OnEpisodeStarted] Called. Episode started player index: %i"),
-	       PlayerIndex)
-
-	/*
-	 *
-	 *
-	 *
-	 *
-	 *todo: UNCOMMENT AFTER REMOVING EXPERIMENTSTARTEPISODE() FROM SPATIALANCHOR MANAGER
-	 *
-	 *
-	 *
-	 *
-	 */
+	       TEXT("[AExperimentClient::OnEpisodeStarted] Called. Episode started player index: %i"), PlayerIndex)
+	
 	if (OcclusionsStruct.bCurrentLocationsLoaded) {
 		UE_LOG(LogTemp, Log, TEXT("[AExperimentClient::OnEpisodeStarted] Using last loaded locations (%i)"),
 			OcclusionsStruct.OcclusionIDsIntArr.Num())
@@ -938,10 +919,15 @@ void AExperimentClient::OnEpisodeStarted() {
 		UE_LOG(LogTemp, Error, TEXT("[AExperimentClient::OnEpisodeStarted] LOCATIONS NOT LOADED"))
 	}
 	
-	// if (!ensure(PlayerPawn->IsValidLowLevel())) { return; }
-
-	FrameCountPrey = 0;
+	FrameCountPrey     = 0;
+	FrameCountPredator = 0;
 	ExperimentInfo.SetStatus(EExperimentStatus::InEpisode);
+	if (!PredatorBasic->IsValidLowLevelFast()) {
+		UE_LOG(LogTemp, Log, TEXT("[AExperimentClient::OnEpisodeStarted] Predator not spawned. Calling Spawner."))
+		const bool SpawnResult = SpawnAndPossessPredator();
+		UE_LOG(LogTemp, Log, TEXT("[AExperimentClient::OnEpisodeStarted] SpawnResult: %s"),
+			SpawnResult ? TEXT("True") : TEXT("False"))
+	}
 	SetPredatorIsVisible(true);
 	bCanUpdatePrey = true;
 }
@@ -995,12 +981,7 @@ void AExperimentClient::BeginPlay() {
 
 	ExperimentInfo.OnExperimentStatusChangedEvent.AddDynamic(this, &ThisClass::OnStatusChanged);
 
-	// get world scale
-	this->WorldScale = 15.0f;
-	UE_LOG(LogTemp, Log, TEXT("[AExperimentClient::BeginPlay] WorldScale: %0.2f"), this->WorldScale);
-
-	if (this->SpawnAndPossessPredator()) { UE_LOG(LogTemp, Log, TEXT("Spawned predator: OK")); }
-	else { UE_LOG(LogTemp, Error, TEXT("Spawned predator: FAILED")); }
+	
 
 	ExperimentManager = NewObject<UExperimentManager>(this, UExperimentManager::StaticClass());
 	ExperimentManager->AddToRoot();

@@ -317,9 +317,9 @@ void AExperimentCharacter::UpdateMovement() {
 
 void AExperimentCharacter::BeginPlay() {
 	Super::BeginPlay();
-#if WITH_EDITOR
-	SetupSampling();
-#endif
+// #if WITH_EDITOR
+// 	SetupSampling();
+// #endif
 	if (HasAuthority()) {
 		/* is server */
 		// UE_LOG(LogTemp, Log, TEXT("[AExperimentCharacter::BeginPlay] Running on server. Enabling replication."))
