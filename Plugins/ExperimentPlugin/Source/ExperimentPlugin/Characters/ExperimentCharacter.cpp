@@ -107,11 +107,9 @@ Server_UpdateMovement_Implementation(const FVector& InLocation, const FRotator& 
 		       ))
 		return;
 	}
-	AExperimentGameMode* ExperimentGameMode = Cast<AExperimentGameMode>(GetWorld()->GetAuthGameMode());
-	if (ExperimentGameMode) {
-		UE_LOG(LogTemp, Log,
-		       TEXT(
-			       "[AExperimentCharacter::Server_UpdateMovement_Implementation] Calling: ExperimentGameMode->OnUpdatePreyPosition"
+	if (AExperimentGameMode* ExperimentGameMode = Cast<AExperimentGameMode>(GetWorld()->GetAuthGameMode())) {
+		UE_LOG(LogTemp, Log, TEXT(
+			"[AExperimentCharacter::Server_UpdateMovement_Implementation] Calling: ExperimentGameMode->OnUpdatePreyPosition"
 		       ))
 		ExperimentGameMode->OnUpdatePreyPosition(InLocation, InRotation);
 	}
@@ -134,8 +132,7 @@ bool AExperimentCharacter::StartPositionSamplingTimer(const float InRateHz) {
 		UE_LOG(LogTemp, Log, TEXT("[AExperimentCharacter::StartPositionSamplingTimer] Starting at %0.2f Hz."), InRateHz)
 		EventTimer->SetRateHz(InRateHz); //todo: make sampling rate GI variable (or somewhere relevant) 
 		EventTimer->bLoop = true;
-		EventTimer->OnTimerFinishedDelegate.AddDynamic(this,
-		                                               &AExperimentCharacter::UpdateMovement);
+		EventTimer->OnTimerFinishedDelegate.AddDynamic(this, &AExperimentCharacter::UpdateMovement);
 
 		if (!EventTimer->Start()) { return false; }
 	}
@@ -295,6 +292,7 @@ void AExperimentCharacter::UpdateMovement() {
 		}
 	}
 	Server_UpdateMovement(CurrentLocation, CurrentRotation);
+	// Server_UpdateMovement(Camera ? Camera->GetComponentLocation() : FVector::ZeroVector, CurrentRotation);
 }
 
 // void AExperimentCharacter::UpdateRoomScaleLocation() {

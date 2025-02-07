@@ -225,10 +225,10 @@ FLocation UExperimentUtils::VrToCanonical(const FVector VectorIn, const float Ma
 
 	/* v2 */
 	const float ScaledDiameter = MapLengthIn * WorldScaleIn;
-	const float Apothem        = 0.5 * UKismetMathLibrary::Sqrt(3) * ScaledDiameter / 2; 
+	const float Apothem        = 0.5 * UKismetMathLibrary::Sqrt(3) * (ScaledDiameter / 2); 
 	
-	LocationOut.x = ScaledDiameter != 0.0f ? (VectorIn.X / ScaledDiameter)    : 0.0f; // Cx = Vx / ds
-	LocationOut.y = Apothem		   != 0.0f ? 0.5 + (VectorIn.Y / (2*Apothem)) : 0.0f; // Cy = 0.5 + Vy/2a
+	LocationOut.x = ScaledDiameter != 0.0f ? (VectorIn.X / ScaledDiameter)    : 0.0f; // Cx = Vx / ds 
+	LocationOut.y = Apothem		   != 0.0f ? 0.5 + (VectorIn.Y / (2*Apothem)) : 0.0f; // Cy = 0.5 + Vy/2a # TODO: CHECK
 	
 	return LocationOut;
 }

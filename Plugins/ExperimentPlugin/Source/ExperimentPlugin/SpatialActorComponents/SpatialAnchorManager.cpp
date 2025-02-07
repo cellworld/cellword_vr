@@ -27,13 +27,17 @@ void USpatialAnchorManager::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>
 void USpatialAnchorManager::TickComponent(float DeltaTime, ELevelTick TickType,
 	FActorComponentTickFunction* ThisTickFunction) {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
-	// UE_LOG(LogTemp, Warning, TEXT("[USpatialAnchorManager::TickComponent] Habitat is valid: %s"),
-	// 				(Habitat->IsValidLowLevelFast() ? TEXT("true") : TEXT("false")));
-	//
-	// UE_LOG(LogTemp, Warning, TEXT("[USpatialAnchorManager::TickComponent] bSpawnInProgress: %s"),
-	// 			(bSpawnInProgress ? TEXT("true") : TEXT("false")));
-	// modelspawnpositioner on server does not change
-	// changed on client
+	if (SpawnedAnchors.Num() == 2) {
+		
+		check(SpawnedAnchors.IsValidIndex(0))
+		check(SpawnedAnchors.IsValidIndex(1))
+
+		UE_LOG(LogTemp, Warning, TEXT("[USpatialAnchorManager::TickComponent] EntryAnchor: %s"),
+			SpawnedAnchors[0]->IsValidLowLevelFast() ? *SpawnedAnchors[0]->GetActorLocation().ToString() : TEXT("NULL"));
+
+		UE_LOG(LogTemp, Warning, TEXT("[USpatialAnchorManager::TickComponent] ExitAnchor: %s"),
+			SpawnedAnchors[1]->IsValidLowLevelFast() ? *SpawnedAnchors[1]->GetActorLocation().ToString() : TEXT("NULL"));
+	}
 }
 
 void USpatialAnchorManager::CreateOculusAnchorCallback(EOculusXRAnchorResult::Type ResultCB, UOculusXRAnchorComponent* Anchor) {
@@ -446,7 +450,7 @@ void USpatialAnchorManager::Server_FinishSpawn_Implementation() {
 
 	const FVector AnchorLocationA = SpawnedAnchors[0]->GetActorLocation();
 	const FVector AnchorLocationB = SpawnedAnchors[1]->GetActorLocation();
-
+	
 	UE_LOG(LogTemp, Log, TEXT("[USpatialAnchorManager::Server_FinishSpawn_Implementation] AnchorLocationA: %s!"),
 		*AnchorLocationA.ToString())
 	UE_LOG(LogTemp, Log, TEXT("[USpatialAnchorManager::Server_FinishSpawn_Implementation] AnchorLocationB: %s!"),
@@ -463,9 +467,10 @@ void USpatialAnchorManager::Server_FinishSpawn_Implementation() {
 	UE_LOG(LogTemp, Log, TEXT("[USpatialAnchorManager::Server_FinishSpawn_Implementation] ActorLocationB: %s!"),
 		*ActorLocationB.ToString())
 	
-	// hab length = door entry - door exit (should be ~236) 
-	const float BaseDistance = UKismetMathLibrary::Vector_Distance(ActorLocationB, ActorLocationA);
-	UE_LOG(LogTemp, Log, TEXT("[USpatialAnchorManager::Server_FinishSpawn_Implementation] BaseDistance: %0.3f!"),BaseDistance)
+	// hab length = door entry - door exit (should be ~235) 
+	// const float BaseDistance = UKismetMathLibrary::Vector_Distance(ActorLocationB, ActorLocationA);
+	const float BaseDistance = 235.185;
+	UE_LOG(LogTemp, Log, TEXT("[USpatialAnchorManager::Server_FinishSpawn_Implementation] BaseDistance: %0.3f!"), BaseDistance)
 	
 	// target distance we want to achieve by getting distance between the two anchors (user-defined)
 	const double NewDistance = UKismetMathLibrary::Vector_Distance(AnchorLocationA, AnchorLocationB);
@@ -512,11 +517,6 @@ void USpatialAnchorManager::Server_FinishSpawn_Implementation() {
 			ExperimentGameMode->ExperimentClient->OffsetOriginTransform = SpawnTransformFinal;
 			ExperimentGameMode->ExperimentClient->WorldScale		    = NewActorScaleFactor;
 			ExperimentGameMode->ExperimentClient->Habitat			    = Habitat;
-			// if (ensure(GetOwner())) {
-			// 	UE_LOG(LogTemp, Log, TEXT("[USpatialAnchorManager::Server_FinishSpawn_Implementation] APPLYING TRANSFORM "))
-			// 	GetOwner()->SetActorTransform(SpawnTransformFinal);
-			// }
-			// ExperimentGameMode->ExperimentStartEpisode(); // debug | todo: delete 
 			if (!ExperimentGameMode->ExperimentClient->SendGetOcclusionLocationsRequest()) {
 				UE_LOG(LogTemp, Error, TEXT("[[USpatialAnchorManager::Server_FinishSpawn_Implementation]] Failed to SendGetOcclusionLocationsRequest"))
 			}else {
@@ -525,6 +525,9 @@ void USpatialAnchorManager::Server_FinishSpawn_Implementation() {
 		}
 	}
 	
+	UE_LOG(LogTemp, Warning,
+		TEXT("[USpatialAnchorManager::Server_FinishSpawn_Implementation] Set dbgbSpawnAnchorsComplete DELETE AFTER"))
+
 }
 
 bool USpatialAnchorManager::Server_HandleSpawnHabitat_Validate(USceneComponent* InModelSpawnPositioner) { return true; }

@@ -15,8 +15,9 @@ protected:
 	// ReSharper disable once CppUE4CodingStandardNamingViolationWarning
 	int MAX_ANCHOR_COUNT = 2;
 	int MAX_SUPPORT_ANCHOR_COUNT = 16;
-	int dbgSupportAnchorCount = 0; 
-
+	int dbgSupportAnchorCount = 0;
+	bool dbgbSpawnAnchorsComplete = false;
+	TArray<FVector> dbgInitAnchorLocations = {};
 	
 public:
 	

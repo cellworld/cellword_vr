@@ -76,7 +76,7 @@ bool AExperimentClient::SpawnAndPossessPredator() {
 
 	const FVector SpawnVector = UExperimentUtils::CanonicalToVrV2(SpawnLocation, this->MapLength, this->WorldScale);
 	const FVector SpawnVectorAdjusted = SpawnVector;
-	
+
 	this->PredatorBasic = GetWorld()->SpawnActor<AExperimentPredator>(
 		AExperimentPredator::StaticClass(),
 		SpawnVectorAdjusted, Rotation, SpawnParams);
@@ -397,7 +397,6 @@ void AExperimentClient::UpdatePredator(const FMessage& InMessage) {
 
 /* get updated player position and send to prey route via tracking service client */
 void AExperimentClient::UpdatePreyPosition(const FVector InVector, const FRotator InRotation) {
-	// UE_LOG(LogTemp, Log, TEXT("[AExperimentClient::UpdatePreyPosition] Called | bCanUpdatePrey = %i"),bCanUpdatePrey)
 	// if (!ensure(ExperimentManager->IsValidLowLevelFast())) { return; }
 	// if (!ExperimentManager->IsInEpisode()) { return; }
 	if (!bConnectedToServer) {
@@ -405,9 +404,10 @@ void AExperimentClient::UpdatePreyPosition(const FVector InVector, const FRotato
 		return;
 	}
 	if (!bResetSuccessDbg) {
-		// UE_LOG(LogTemp, Warning, TEXT("[AExperimentClient::UpdatePreyPosition] bResetSuccessDbg false"))
+		UE_LOG(LogTemp, Warning, TEXT("[AExperimentClient::UpdatePreyPosition] bResetSuccessDbg false"))
 		return;
 	}
+	
 	if (!bCanUpdatePrey) { return; }
 		
 	if (!ensure(this->ValidateClient(TrackingClient))) {
@@ -440,8 +440,8 @@ void AExperimentClient::UpdatePreyPosition(const FVector InVector, const FRotato
 
 	Step.location    = Location;
 	Step.rotation    = InRotation.Yaw;
-	
-	UE_LOG(LogTemp, Log, TEXT("[UpdatePreyPosition] ==== InVector: %s"), *InVector.ToString())
+
+	UE_LOG(LogTemp, Log, TEXT("[UpdatePreyPosition] ==== RotatedVector: %s"), *RotatedVector.ToString())
 	UE_LOG(LogTemp, Log, TEXT("[UpdatePreyPosition] Step: %s ==== "), *UExperimentUtils::StepToJsonString(Step))
 	
 	if (ensure(ExperimentManager->IsValidLowLevelFast() && ExperimentManager->Stopwatch->IsValidLowLevelFast())) {
