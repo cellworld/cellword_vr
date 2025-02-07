@@ -220,16 +220,17 @@ FString UExperimentUtils::StepToJsonString(FStep Step) {
 
 FLocation UExperimentUtils::VrToCanonical(const FVector VectorIn, const float MapLengthIn, const float WorldScaleIn) {
 	FLocation LocationOut;
-	// LocationOut.x = ((VectorIn.X) / (MapLengthIn * WorldScaleIn));
-	// LocationOut.y = VectorIn.Y / (-MapLengthIn * WorldScaleIn);
-
+	constexpr float HabitatOffset = 0.5;
 	/* v2 */
 	const float ScaledDiameter = MapLengthIn * WorldScaleIn;
-	const float Apothem        = 0.5 * UKismetMathLibrary::Sqrt(3) * (ScaledDiameter / 2); 
+	const float Apothem        = HabitatOffset * UKismetMathLibrary::Sqrt(3) * (ScaledDiameter / 2); 
 	
-	LocationOut.x = ScaledDiameter != 0.0f ? (VectorIn.X / ScaledDiameter)    : 0.0f; // Cx = Vx / ds 
-	LocationOut.y = Apothem		   != 0.0f ? 0.5 + (VectorIn.Y / (2*Apothem)) : 0.0f; // Cy = 0.5 + Vy/2a # TODO: CHECK
-	
+	LocationOut.x = ScaledDiameter != 0.0f ? (VectorIn.X / ScaledDiameter)    : 0.0f; 
+	LocationOut.y = Apothem		   != 0.0f ? HabitatOffset + (VectorIn.Y / (2*Apothem)) : 0.0f; 
+
+	/* apply offset scale to account for legacy camera system */
+	LocationOut.y  = LocationOut.y * HabitatOffset * UKismetMathLibrary::Sqrt(3) +
+		HabitatOffset - UKismetMathLibrary::Sqrt(3)/4;	
 	return LocationOut;
 }
 
@@ -249,7 +250,14 @@ FVector UExperimentUtils::CanonicalToVr(const FLocation LocationIn, const float 
 	FVector VectorOut;
 	VectorOut.X = (LocationIn.x * MapLengthIn * WorldScaleIn);
 	VectorOut.Y = (LocationIn.y * MapLengthIn * WorldScaleIn * 2);
-	VectorOut.Z = 0; // will need to be changed 
+	VectorOut.Z = 0; // will need to be changed
+	
+	constexpr float HabitatOffset = 0.5;
+
+	/* apply offset scale to account for legacy camera system */
+	VectorOut.Y = VectorOut.Y * (1/HabitatOffset * UKismetMathLibrary::Sqrt(3)) -
+		HabitatOffset + UKismetMathLibrary::Sqrt(3) / 4;
+
 	return VectorOut;
 }
 
