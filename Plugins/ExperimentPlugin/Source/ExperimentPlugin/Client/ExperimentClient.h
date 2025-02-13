@@ -195,13 +195,15 @@ public:
 	}
 };
 
+
+
 USTRUCT(Blueprintable)
 struct FServerInfo {
 	GENERATED_BODY()
 public:
 	FServerInfo() :
 		Port(4791),
-		IP(TEXT("127.0.0.1")) // main machine 
+		IP(TEXT("192.168.1.5")) // main machine 
 		{}
 	
 	int Port;
@@ -219,6 +221,7 @@ public:
 
 	UPROPERTY(EditAnywhere, Blueprintable)
 	FServerInfo ServerInfo = FServerInfo();
+	
 	/* ==== server stuff ==== */
 	// const FString ServerIP         = "192.168.1.199";  // static vr backpack win11 PACKAGED ONLY
 	// const int TrackingPort	           = 4791;
