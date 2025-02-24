@@ -23,6 +23,10 @@ AOcclusion::AOcclusion() {
 	}else { UE_LOG(LogTemp, Error, TEXT("[AOcclusion::AOcclusion] Failed to apply material.")); }
 	
 	this->SetActorEnableCollision(false);
+	if (StaticMeshComponent) {
+		StaticMeshComponent->SetCastShadow(false);
+	}
+	
  }
 
 // Called when the game starts or when spawned

@@ -72,7 +72,7 @@ public:
 		for (int i = 0; i < AllLocations.Num(); i++) {
 			constexpr float ScaleOffset       = 0.99157164105; // give a little wiggle room between walls and occlusions
 			constexpr float MapLength         = 235.185290;    // base length of habitat 
-			constexpr float HeightScaleFactor = 8;             // make occlusions a bit taller; we aren't mice
+			constexpr float HeightScaleFactor = 5;             // make occlusions a bit taller; we aren't mice
 			
 			const FVector SpawnLocationConverted = UExperimentUtils::CanonicalToVrV2(
 				AllLocations[i],
