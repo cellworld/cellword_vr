@@ -147,8 +147,7 @@ public:
 };
 
 USTRUCT(Blueprintable)
-struct FExperimentHeaders
-{
+struct FExperimentHeaders {
 	GENERATED_BODY()
 	
 	/* headers */
@@ -195,8 +194,6 @@ public:
 	}
 };
 
-
-
 USTRUCT(Blueprintable)
 struct FServerInfo {
 	GENERATED_BODY()
@@ -204,6 +201,7 @@ public:
 	FServerInfo() :
 		Port(4791),
 		IP(TEXT("192.168.1.5")) // main machine 
+		// IP(TEXT("192.168.1.3")) // alberto machine 
 		{}
 	
 	int Port;
@@ -264,7 +262,6 @@ public:
 		TObjectPtr<UMessageRoute> MessageRouteOnCapture;
 	UPROPERTY()
 		TObjectPtr<UMessageRoute> MessageRoutePredator;
-
 
 	UFUNCTION(Server, Reliable, WithValidation, BlueprintCallable)
 	void Server_SpawnOcclusions();

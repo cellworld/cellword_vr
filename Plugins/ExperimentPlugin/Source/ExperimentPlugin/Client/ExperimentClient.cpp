@@ -975,15 +975,43 @@ float AExperimentClient::GetTimeRemaining() const {
 	return GetWorld()->GetTimerManager().GetTimerRemaining(*TimerHandlePtr);
 }
 
+
+void TestConversions(const FLocation InputLocation) {
+	constexpr float TestScale = 1.0f;
+	
+	UE_LOG(LogTemp, Warning, TEXT("[TestConversions] STARTED"))
+	UE_LOG(LogTemp, Warning, TEXT("[TestConversions] InputLocation: (%0.2f, %0.2f)"),
+		InputLocation.x,
+		InputLocation.y)
+
+	// convert from canonical to VR coordinates 
+	const FVector Can2Vr = UExperimentUtils::CanonicalToVrV2(InputLocation, 235.185, TestScale);
+	UE_LOG(LogTemp, Warning, TEXT("[TestConversions] Can2VR: (%0.2f, %0.2f)"),
+		Can2Vr.X,
+		Can2Vr.Y)
+
+	// convert back to canonical (should be same as InputLocation)
+	const FLocation VR2Can = UExperimentUtils::VrToCanonical(Can2Vr,235.185, TestScale);
+	UE_LOG(LogTemp, Warning, TEXT("[TestConversions] VR2Can: (%0.2f, %0.2f)"),
+		   VR2Can.x,
+		   VR2Can.y)
+	
+	UE_LOG(LogTemp, Warning, TEXT("[TestConversions] DONE"))
+}
+
 /* main stuff happens here */
 void AExperimentClient::BeginPlay() {
 	Super::BeginPlay();
 
-	UE_LOG(LogTemp, Log, TEXT("[AExperimentClient::BeginPlay] Called"));
+	constexpr FLocation TopHabitatLocation = {0.5, 1.0f};
+	TestConversions(TopHabitatLocation);
 
-	ExperimentInfo.OnExperimentStatusChangedEvent.AddDynamic(this, &ThisClass::OnStatusChanged);
-
+	constexpr FLocation BottomHabitatLocation = {0.5, 0.0f};
+	TestConversions(BottomHabitatLocation);
 	
+	UE_LOG(LogTemp, Log, TEXT("[AExperimentClient::BeginPlay] Called"));
+	
+	ExperimentInfo.OnExperimentStatusChangedEvent.AddDynamic(this, &ThisClass::OnStatusChanged);
 
 	ExperimentManager = NewObject<UExperimentManager>(this, UExperimentManager::StaticClass());
 	ExperimentManager->AddToRoot();
@@ -1011,9 +1039,13 @@ void AExperimentClient::BeginPlay() {
 	// StartEpisode();	
 }
 
+
 /* run a (light!) command every frame */
 void AExperimentClient::Tick(float DeltaTime) {
 	Super::Tick(DeltaTime);
+	
+
+	
 	// if (bConnectedToServer && bResetSuccessDbg) {
 	// 	UpdatePreyPosition(FVector{0.5f,0.5f,0.5f}, FRotator::ZeroRotator);
 	// }

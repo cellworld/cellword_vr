@@ -229,20 +229,22 @@ FLocation UExperimentUtils::VrToCanonical(const FVector VectorIn, const float Ma
 	LocationOut.y = Apothem		   != 0.0f ? HabitatOffset + (VectorIn.Y / (2*Apothem)) : 0.0f; 
 
 	/* apply offset scale to account for legacy camera system */
-	LocationOut.y  = LocationOut.y * HabitatOffset * UKismetMathLibrary::Sqrt(3) +
-		HabitatOffset - UKismetMathLibrary::Sqrt(3)/4;	
+	// LocationOut.y  = LocationOut.y * HabitatOffset * UKismetMathLibrary::Sqrt(3) +
+	// 	HabitatOffset - UKismetMathLibrary::Sqrt(3)/4;	
 	return LocationOut;
 }
 
 FVector UExperimentUtils::CanonicalToVrV2(const FLocation LocationIn, const float MapLengthIn, const float WorldScaleIn) {
 
-	const float ScaledDiameter = MapLengthIn * WorldScaleIn; // ds
-	const float Apothem        = 0.5 * UKismetMathLibrary::Sqrt(3) * ScaledDiameter / 2; // a
+	const float ScaledDiameter    = MapLengthIn * WorldScaleIn; 
+	constexpr float HabitatOffset = 0.5;
+	const float Apothem           = HabitatOffset * UKismetMathLibrary::Sqrt(3) * (ScaledDiameter / 2); // a
 	
 	FVector VectorOut;
 	VectorOut.X = ScaledDiameter != 0.0f ? (LocationIn.x * ScaledDiameter)    : 0.0f; // Vx = Cx * ds 
-	VectorOut.Y = Apothem        != 0.0f ? (LocationIn.y - 0.5) * 2 * Apothem : 0.0f; // Vy = (Cy-0.5)*2a
-	VectorOut.Z = 0; // will need to be changed 
+	VectorOut.Y = Apothem        != 0.0f ? (LocationIn.y - HabitatOffset) * 2 * Apothem : 0.0f; // Vy = (Cy-0.5)*2a
+	VectorOut.Z = 0; // will need to be changed
+	
 	return VectorOut;
 }
 
